@@ -1,6 +1,3 @@
-# test_module1.py for project_name
-# tests/test_module1.py
-
 import unittest
 from project_name.module1 import Calculator
 
