@@ -1,11 +1,12 @@
 import unittest
 from project_name.forest import Forest
 from project_name.tree import Tree
+from project_name.health_status import HealthStatus
 
 class TestForest(unittest.TestCase):
     def setUp(self):
         self.forest = Forest('TestForest', 'TestLocation', 100)
-        self.tree = Tree('Pine', 5, 'Healthy', self.forest.name)
+        self.tree = Tree(1, 'Pine', 5, HealthStatus.HEALTHY, self.forest)
 
     def test_add_tree(self):
         self.forest.add_tree(self.tree)

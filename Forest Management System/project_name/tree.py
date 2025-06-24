@@ -10,8 +10,12 @@ class Tree:
         self.set_health_status(health_status)
 
     def set_health_status(self, status):
+        from project_name.health_status import HealthStatus
         if not isinstance(status, HealthStatus):
-            raise ValueError("health_status must be an instance of HealthStatus Enum")
+            try:
+                status = HealthStatus(status)
+            except Exception:
+                raise ValueError("health_status must be an instance of HealthStatus Enum")
         self.health_status = status
 
     def __repr__(self):

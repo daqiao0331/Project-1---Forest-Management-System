@@ -1,5 +1,5 @@
 def find_trees_by_health(trees, health_status):
-    return [tree for tree in trees if tree.health == health_status]
+    return [tree for tree in trees if tree.health_status == health_status]
 
 def count_trees_by_species(trees):
     species_count = {}
