@@ -21,8 +21,8 @@ def load_forest_from_files(tree_file, path_file):
     with open(path_file, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            t1 = graph.trees[int(row['tree_id1'])]
-            t2 = graph.trees[int(row['tree_id2'])]
+            t1 = graph.trees[int(row['tree_1'])]
+            t2 = graph.trees[int(row['tree_2'])]
             path = Path(t1, t2, float(row['distance']))
             graph.add_path(path)
     return graph
