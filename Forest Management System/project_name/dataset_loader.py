@@ -14,7 +14,7 @@ def load_forest_from_files(tree_file, path_file):
                 int(row['tree_id']),
                 row['species'],
                 int(row['age']),
-                HealthStatus[row['health_status'].upper()]
+                HealthStatus[row['health_status'].replace(' ', '_').upper()]
             )
             graph.add_tree(tree)
     # Load paths
