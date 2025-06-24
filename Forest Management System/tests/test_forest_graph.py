@@ -1,8 +1,8 @@
 import unittest
-from project_name.tree import Tree
-from project_name.health_status import HealthStatus
-from project_name.path import Path
-from project_name.forest_graph import ForestGraph
+from forest_management_system.components.tree import Tree
+from forest_management_system.components.health_status import HealthStatus
+from forest_management_system.components.path import Path
+from forest_management_system.components.forest_graph import ForestGraph
 
 class TestForestGraph(unittest.TestCase):
     def setUp(self):

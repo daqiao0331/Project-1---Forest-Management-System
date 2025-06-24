@@ -10,7 +10,7 @@ class Tree:
         self.set_health_status(health_status)
 
     def set_health_status(self, status):
-        from project_name.health_status import HealthStatus
+        from .health_status import HealthStatus
         if not isinstance(status, HealthStatus):
             try:
                 status = HealthStatus(status)

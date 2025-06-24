@@ -1,7 +1,7 @@
 import unittest
-from project_name.tree import Tree
-from project_name.utils import find_trees_by_health, count_trees_by_species
-from project_name.health_status import HealthStatus
+from forest_management_system.components.tree import Tree
+from forest_management_system.algorithms import find_trees_by_health, count_trees_by_species
+from forest_management_system.components.health_status import HealthStatus
 
 class TestUtils(unittest.TestCase):
     def setUp(self):

@@ -1,7 +1,7 @@
 import unittest
-from project_name.dataset_loader import load_forest_from_files
-from project_name.infection_simulation import simulate_infection
-from project_name.health_status import HealthStatus
+from forest_management_system.components.dataset_loader import load_forest_from_files
+from forest_management_system.algorithms.infection_simulation import simulate_infection
+from forest_management_system.components.health_status import HealthStatus
 
 class TestInfectionSimulation(unittest.TestCase):
     def setUp(self):

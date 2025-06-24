@@ -1,5 +1,5 @@
 from collections import deque
-from .health_status import HealthStatus
+from components.health_status import HealthStatus
 
 def find_reserves(forest_graph):
     """

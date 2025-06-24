@@ -1,6 +1,6 @@
 import unittest
-from project_name.dataset_loader import load_forest_from_files
-from project_name.pathfinding import find_shortest_path
+from forest_management_system.components.dataset_loader import load_forest_from_files
+from forest_management_system.algorithms.pathfinding import find_shortest_path
 
 class TestPathfinding(unittest.TestCase):
     def setUp(self):

@@ -1,6 +1,6 @@
 import unittest
-from project_name.tree import Tree
-from project_name.health_status import HealthStatus
+from forest_management_system.components.tree import Tree
+from forest_management_system.components.health_status import HealthStatus
 
 class TestTree(unittest.TestCase):
     def test_tree_init(self):
