@@ -1,17 +1,22 @@
 from forest_management_system.components.health_status import HealthStatus
 
 def simulate_infection(forest_graph, start_tree_id):
-    """
-    Simulate infection spread from a given tree using BFS (graph structure, no deque)
-    """
+    # BFS
     infected = set()
-    queue = [start_tree_id]
-    while queue:
-        current = queue.pop(0)
-        if current in infected:
+    visited = set()
+    bfs_list = []
+    bfs_list.append(start_tree_id)
+    while len(bfs_list) > 0:
+        node = bfs_list[0]
+        bfs_list = bfs_list[1:]
+        if node in visited:
             continue
-        infected.add(current)
-        for neighbor in forest_graph.get_neighbors(current):
-            if neighbor not in infected and forest_graph.trees[neighbor].health_status != HealthStatus.INFECTED:
-                queue.append(neighbor)
+        visited.add(node)
+        infected.add(node)
+        neighbors = forest_graph.get_neighbors(node)
+        for i in range(len(neighbors)):
+            neighbor = neighbors[i]
+            if neighbor not in visited and neighbor not in infected:
+                if forest_graph.trees[neighbor].health_status != HealthStatus.INFECTED:
+                    bfs_list.append(neighbor)
     return infected
