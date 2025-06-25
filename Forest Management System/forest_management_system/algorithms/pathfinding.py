@@ -1,7 +1,6 @@
 def find_shortest_path(forest_graph, start_tree_id, end_tree_id):
     """
-    Find the shortest path between two trees using Dijkstra's algorithm.
-    Returns (path_list, total_distance)
+    Dijkstra's algorithm.
     """
     import heapq
     dist = {tid: float('inf') for tid in forest_graph.trees}

@@ -1,17 +1,17 @@
-from components.health_status import HealthStatus
+from forest_management_system.components.health_status import HealthStatus
 
 def simulate_infection(forest_graph, start_tree_id):
     """
-    Simulate infection spread from a given tree using DFS on the graph structure.
-    Returns a set of infected tree_ids (including the start).
+    Simulate infection spread from a given tree using BFS (graph structure, no deque)
     """
     infected = set()
-    def dfs(current):
+    queue = [start_tree_id]
+    while queue:
+        current = queue.pop(0)
         if current in infected:
-            return
+            continue
         infected.add(current)
         for neighbor in forest_graph.get_neighbors(current):
             if neighbor not in infected and forest_graph.trees[neighbor].health_status != HealthStatus.INFECTED:
-                dfs(neighbor)
-    dfs(start_tree_id)
+                queue.append(neighbor)
     return infected
