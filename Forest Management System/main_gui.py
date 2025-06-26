@@ -503,14 +503,18 @@ class ForestGUI:
     def update_display(self):
         self.ax.clear()
         self.setup_canvas()
-        # Draw reserves (healthy tree clusters)
+        # Draw reserves (as one big circle per reserve)
         reserves = find_reserves(self.forest_graph)
         reserve_color = '#7ed6df'
         for reserve in reserves:
-            for tree_id in reserve:
-                if tree_id in self.tree_positions:
-                    x, y = self.tree_positions[tree_id]
-                    self.ax.add_patch(Circle((x, y), 17, color=reserve_color, alpha=0.18, zorder=2, linewidth=0))
+            positions = [self.tree_positions[tree_id] for tree_id in reserve if tree_id in self.tree_positions]
+            if len(positions) >= 2:
+                xs, ys = zip(*positions)
+                center_x = sum(xs) / len(xs)
+                center_y = sum(ys) / len(ys)
+                # 计算最大距离作为半径
+                max_r = max(np.sqrt((x - center_x) ** 2 + (y - center_y) ** 2) for x, y in positions) + 18
+                self.ax.add_patch(Circle((center_x, center_y), max_r, color=reserve_color, alpha=0.18, zorder=2, linewidth=0))
         # Draw paths
         for path in self.forest_graph.paths:
             x1, y1 = self.tree_positions[path.tree1.tree_id]
@@ -1061,16 +1065,22 @@ class ForestGUI:
         infected_percent = (infected_count / tree_count) * 100
         from collections import Counter
         species_counter = Counter(t.species for t in self.forest_graph.trees.values())
-        most_common_species, most_common_count = species_counter.most_common(1)[0]
+        if species_counter:
+            most_common_species, most_common_count = species_counter.most_common(1)[0]
+        else:
+            most_common_species, most_common_count = 'N/A', 0
         reserves = find_reserves(self.forest_graph)
         max_reserve = max((len(r) for r in reserves), default=0)
+        reserve_count = len(reserves)
         # Plot
         import matplotlib.pyplot as plt
         import matplotlib.ticker as mticker
         fig, axs = plt.subplots(1, 3, figsize=(15, 4))
         # Pie chart for health status
         health_counts = Counter(t.health_status.name for t in self.forest_graph.trees.values())
-        axs[0].pie(health_counts.values(), labels=health_counts.keys(), autopct='%1.1f%%', colors=['#2ecc71', '#e74c3c', '#f39c12'])
+        color_map = {'HEALTHY': '#2ecc71', 'INFECTED': '#e74c3c', 'AT_RISK': '#f39c12'}
+        pie_colors = [color_map.get(k, '#95a5a6') for k in health_counts.keys()]
+        axs[0].pie(health_counts.values(), labels=health_counts.keys(), autopct='%1.1f%%', colors=pie_colors)
         axs[0].set_title('Health Status Distribution')
         # Bar chart for species
         axs[1].bar(species_counter.keys(), species_counter.values(), color='#3498db')
@@ -1079,14 +1089,22 @@ class ForestGUI:
         axs[1].tick_params(axis='x', rotation=30)
         # Text summary
         axs[2].axis('off')
-        summary = f"Infected: {infected_percent:.1f}%\nMax Reserve Size: {max_reserve}\nMost Common Species: {most_common_species} ({most_common_count})"
+        summary = (
+            f"Infected: {infected_percent:.1f}%\n"
+            f"Reserve Count: {reserve_count}\n"
+            f"Max Reserve Size: {max_reserve}\n"
+            f"Most Common Species: {most_common_species} ({most_common_count})"
+        )
         axs[2].text(0.1, 0.5, summary, fontsize=13, va='center', ha='left', wrap=True)
         plt.tight_layout()
-        plt.show()
+        plt.show(block=False)  # 非阻塞显示
+        plt.close(fig)  # 防止多次弹窗导致崩溃
         self.status_bar.config(text="📊 Forest analysis displayed.")
-
 def main():
     root = tk.Tk()
+    root.title("Forest Management System")
+    root.state('zoomed')  # Windows全屏
+    root.resizable(True, True)
     app = ForestGUI(root)
     root.mainloop()
 
