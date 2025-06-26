@@ -448,7 +448,7 @@ class ForestGUI:
                     if self.path_start != clicked_tree:
                         x1, y1 = self.tree_positions[self.path_start.tree_id]
                         x2, y2 = self.tree_positions[clicked_tree.tree_id]
-                        distance = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+                        distance = np.sqrt((x2-x1)**2 + (y1-y2)**2)
                         path = Path(self.path_start, clicked_tree, distance)
                         self.forest_graph.add_path(path)
                         self.update_display()
@@ -1095,32 +1095,35 @@ class ForestGUI:
         reserves = find_reserves(self.forest_graph)
         max_reserve = max((len(r) for r in reserves), default=0)
         reserve_count = len(reserves)
-        def plot_analysis():
-            import matplotlib.pyplot as plt
-            fig, axs = plt.subplots(1, 3, figsize=(15, 4))
-            # Pie chart for health status
-            color_map = {'HEALTHY': '#2ecc71', 'INFECTED': '#e74c3c', 'AT_RISK': '#f39c12'}
-            pie_colors = [color_map.get(k, '#95a5a6') for k in health_counts.keys()]
-            axs[0].pie(health_counts.values(), labels=health_counts.keys(), autopct='%1.1f%%', colors=pie_colors)
-            axs[0].set_title('Health Status Distribution')
-            # Bar chart for species
-            axs[1].bar(species_counter.keys(), species_counter.values(), color='#3498db')
-            axs[1].set_title('Species Distribution')
-            axs[1].set_ylabel('Count')
-            axs[1].tick_params(axis='x', rotation=30)
-            # Text summary
-            axs[2].axis('off')
-            summary = (
-                f"Infected: {infected_percent:.1f}%\n"
-                f"Reserve Count: {reserve_count}\n"
-                f"Max Reserve Size: {max_reserve}\n"
-                f"Most Common Species: {most_common_species} ({most_common_count})"
-            )
-            axs[2].text(0.1, 0.5, summary, fontsize=13, va='center', ha='left', wrap=True)
-            plt.tight_layout()
-            plt.show(block=False)
-            plt.close(fig)
-        plot_analysis()
+        import matplotlib.pyplot as plt
+        fig, axs = plt.subplots(1, 3, figsize=(15, 4))
+        # Pie chart for health status
+        color_map = {'HEALTHY': '#2ecc71', 'INFECTED': '#e74c3c', 'AT_RISK': '#f39c12'}
+        pie_labels = list(health_counts.keys())
+        pie_values = list(health_counts.values())
+        pie_colors = [color_map.get(k, '#95a5a6') for k in pie_labels]
+        if pie_values:
+            axs[0].pie(pie_values, labels=pie_labels, autopct='%1.1f%%', colors=pie_colors)
+        axs[0].set_title('Health Status Distribution')
+        # Bar chart for species
+        bar_labels = list(species_counter.keys())
+        bar_values = list(species_counter.values())
+        if bar_values:
+            axs[1].bar(bar_labels, bar_values, color='#3498db')
+        axs[1].set_title('Species Distribution')
+        axs[1].set_ylabel('Count')
+        axs[1].tick_params(axis='x', rotation=30)
+        # Text summary
+        axs[2].axis('off')
+        summary = (
+            f"Infected: {infected_percent:.1f}%\n"
+            f"Reserve Count: {reserve_count}\n"
+            f"Max Reserve Size: {max_reserve}\n"
+            f"Most Common Species: {most_common_species} ({most_common_count})"
+        )
+        axs[2].text(0.1, 0.5, summary, fontsize=13, va='center', ha='left', wrap=True)
+        plt.tight_layout()
+        plt.show()  # 阻塞显示，用户手动关闭
         self.status_bar.config(text="📊 Forest analysis displayed.")
 def main():
     root = tk.Tk()
