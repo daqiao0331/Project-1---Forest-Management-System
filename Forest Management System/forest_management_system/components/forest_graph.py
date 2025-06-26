@@ -30,6 +30,15 @@ class ForestGraph:
         if tree_id in self.trees:
             self.trees[tree_id].set_health_status(new_status)
 
+    def get_neighbors(self, tree_id):
+        neighbors = []
+        for path in self.paths:
+            if path.tree1.tree_id == tree_id:
+                neighbors.append(path.tree2.tree_id)
+            elif path.tree2.tree_id == tree_id:
+                neighbors.append(path.tree1.tree_id)
+        return neighbors
+
     def __repr__(self):
         s = 'ForestGraph:\n'
         for t in self.trees.values():

@@ -3,11 +3,6 @@ from forest_management_system.components.health_status import HealthStatus
 DFS algorithm to find reserves in a forest graph
 '''
 def find_reserves(forest_graph):
-    """
-    找出所有健康树组成的保护区（连通分量）。
-    :param forest_graph: ForestGraph 实例
-    :return: 每个保护区是一个 set，里面是树的 id
-    """
     reserves = []  # 存放所有保护区
     visited = set()  # 记录已经访问过的树
 
