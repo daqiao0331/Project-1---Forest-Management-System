@@ -173,6 +173,7 @@ class ForestGUI:
         self.infection_sim_btn = ModernButton(data_frame, text="🦠  Infection Sim", 
                     command=self.enter_infection_sim_mode)
         self.infection_sim_btn.pack(fill=tk.X, pady=3)
+        ModernButton(data_frame, text="📊  Analyze Forest", command=self.show_forest_analysis).pack(fill=tk.X, pady=3)
         
         # Forest Information Section
         info_frame = ttk.LabelFrame(scrollable_frame, text="📊 Forest Information", 
@@ -1049,6 +1050,40 @@ class ForestGUI:
             if font in available_fonts:
                 return font
         return 'DejaVu Sans'
+    
+    def show_forest_analysis(self):
+        # Gather statistics
+        tree_count = len(self.forest_graph.trees)
+        if tree_count == 0:
+            messagebox.showinfo("Forest Analysis", "No trees in the forest.")
+            return
+        infected_count = sum(1 for t in self.forest_graph.trees.values() if t.health_status.name == "INFECTED")
+        infected_percent = (infected_count / tree_count) * 100
+        from collections import Counter
+        species_counter = Counter(t.species for t in self.forest_graph.trees.values())
+        most_common_species, most_common_count = species_counter.most_common(1)[0]
+        reserves = find_reserves(self.forest_graph)
+        max_reserve = max((len(r) for r in reserves), default=0)
+        # Plot
+        import matplotlib.pyplot as plt
+        import matplotlib.ticker as mticker
+        fig, axs = plt.subplots(1, 3, figsize=(15, 4))
+        # Pie chart for health status
+        health_counts = Counter(t.health_status.name for t in self.forest_graph.trees.values())
+        axs[0].pie(health_counts.values(), labels=health_counts.keys(), autopct='%1.1f%%', colors=['#2ecc71', '#e74c3c', '#f39c12'])
+        axs[0].set_title('Health Status Distribution')
+        # Bar chart for species
+        axs[1].bar(species_counter.keys(), species_counter.values(), color='#3498db')
+        axs[1].set_title('Species Distribution')
+        axs[1].set_ylabel('Count')
+        axs[1].tick_params(axis='x', rotation=30)
+        # Text summary
+        axs[2].axis('off')
+        summary = f"Infected: {infected_percent:.1f}%\nMax Reserve Size: {max_reserve}\nMost Common Species: {most_common_species} ({most_common_count})"
+        axs[2].text(0.1, 0.5, summary, fontsize=13, va='center', ha='left', wrap=True)
+        plt.tight_layout()
+        plt.show()
+        self.status_bar.config(text="📊 Forest analysis displayed.")
 
 def main():
     root = tk.Tk()
