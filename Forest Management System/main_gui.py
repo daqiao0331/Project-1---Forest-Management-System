@@ -590,9 +590,6 @@ class ForestGUI:
                     ha='left', va='top', fontfamily=self.emoji_font)
         self.ax.text(legend_x + 16, legend_y_start - 46, "Infected Tree", 
                     fontsize=12, color='#2c3e50', ha='left', va='top')
-        # Reserve cluster legend
-        self.ax.add_patch(Circle((legend_x + 8, legend_y_start - 62), 8, color=reserve_color, alpha=0.18, zorder=2, linewidth=0))
-        self.ax.text(legend_x + 16, legend_y_start - 66, "Reserve Cluster", fontsize=12, color='#2c3e50', ha='left', va='top')
         self.canvas.draw()
         
     def update_info(self):
@@ -859,6 +856,8 @@ class ForestGUI:
             from tkinter import filedialog
             from forest_management_system.components.dataset_loader import load_forest_from_files
             import os
+            if not hasattr(self, 'last_csv_dir'):
+                self.last_csv_dir = '.'
             dialog = tk.Toplevel(self.root)
             dialog.title("📂 Load Forest Data")
             dialog.geometry("800x550")
@@ -884,9 +883,10 @@ class ForestGUI:
             tree_file_entry = ttk.Entry(tree_file_frame, textvariable=tree_file_var, font=('Segoe UI', 10), width=50)
             tree_file_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
             def browse_tree_file():
-                filename = filedialog.askopenfilename(title="Select Tree Data File", filetypes=[("CSV files", "*.csv"), ("All files", "*.*")], initialdir=".")
+                filename = filedialog.askopenfilename(title="Select Tree Data File", filetypes=[("CSV files", "*.csv"), ("All files", "*.*")], initialdir=self.last_csv_dir)
                 if filename:
                     tree_file_var.set(filename)
+                    self.last_csv_dir = os.path.dirname(filename)
             ttk.Button(tree_file_frame, text="Browse", command=browse_tree_file).pack(side=tk.RIGHT)
             path_frame = tk.Frame(form_frame, bg='#f0f0f0')
             path_frame.pack(fill=tk.X, pady=(0, 30))
@@ -897,9 +897,10 @@ class ForestGUI:
             path_file_entry = ttk.Entry(path_file_frame, textvariable=path_file_var, font=('Segoe UI', 10), width=50)
             path_file_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
             def browse_path_file():
-                filename = filedialog.askopenfilename(title="Select Path Data File", filetypes=[("CSV files", "*.csv"), ("All files", "*.*")], initialdir=".")
+                filename = filedialog.askopenfilename(title="Select Path Data File", filetypes=[("CSV files", "*.csv"), ("All files", "*.*")], initialdir=self.last_csv_dir)
                 if filename:
                     path_file_var.set(filename)
+                    self.last_csv_dir = os.path.dirname(filename)
             ttk.Button(path_file_frame, text="Browse", command=browse_path_file).pack(side=tk.RIGHT)
             quick_frame = tk.Frame(form_frame, bg='#f0f0f0')
             quick_frame.pack(fill=tk.X, pady=(0, 20))
