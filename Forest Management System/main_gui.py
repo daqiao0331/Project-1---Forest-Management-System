@@ -778,7 +778,7 @@ class ForestGUI:
                     w = get_edge_weight(current, n)
                     hprio = health_priority(n)
                     neighbor_info.append((w, hprio, n))
-                neighbor_info.sort()  # 距离小优先，AT_RISK优先
+                neighbor_info.sort()  # 距离小优先，AT RISK优先
                 for w, hprio, n in neighbor_info:
                     # 传播时间 = 距离/5*0.1
                     spread_time = cur_time + (w / 5.0) * 0.1
@@ -948,11 +948,30 @@ class ForestGUI:
             messagebox.showerror("Error", f"Failed to create file dialog: {e}")
 
     def save_data(self):
-        # 保存到 data 目录下的 csv
         try:
-            tree_file = os.path.abspath(os.path.join(CUR_DIR, '../../../data/forest_management_dataset-trees.csv'))
-            path_file = os.path.abspath(os.path.join(CUR_DIR, '../../../data/forest_management_dataset-paths.csv'))
+            from tkinter import filedialog
             import csv
+            import os
+            # 选择保存树文件
+            tree_file = filedialog.asksaveasfilename(
+                title="Save Tree Data",
+                defaultextension=".csv",
+                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+                initialfile="forest_management_dataset-trees.csv"
+            )
+            if not tree_file:
+                self.status_bar.config(text="❌ Save cancelled (tree file)")
+                return
+            # 选择保存路径文件
+            path_file = filedialog.asksaveasfilename(
+                title="Save Path Data",
+                defaultextension=".csv",
+                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+                initialfile="forest_management_dataset-paths.csv"
+            )
+            if not path_file:
+                self.status_bar.config(text="❌ Save cancelled (path file)")
+                return
             # 保存树
             with open(tree_file, 'w', newline='') as f:
                 writer = csv.writer(f)
@@ -966,7 +985,7 @@ class ForestGUI:
                 for p in self.forest_graph.paths:
                     writer.writerow([p.tree1.tree_id, p.tree2.tree_id, p.weight])
             self.status_bar.config(text="✅ Data saved successfully")
-            messagebox.showinfo("Success", "Data saved successfully!")
+            messagebox.showinfo("Success", f"Data saved successfully!\nTree file: {tree_file}\nPath file: {path_file}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save data: {e}")
 
@@ -1065,6 +1084,9 @@ class ForestGUI:
         infected_count = sum(1 for t in self.forest_graph.trees.values() if t.health_status.name == "INFECTED")
         infected_percent = (infected_count / tree_count) * 100
         from collections import Counter
+        # 统计健康状态
+        health_counts = Counter(t.health_status.name for t in self.forest_graph.trees.values())
+        # 统计物种分布
         species_counter = Counter(t.species for t in self.forest_graph.trees.values())
         if species_counter:
             most_common_species, most_common_count = species_counter.most_common(1)[0]
@@ -1073,33 +1095,32 @@ class ForestGUI:
         reserves = find_reserves(self.forest_graph)
         max_reserve = max((len(r) for r in reserves), default=0)
         reserve_count = len(reserves)
-        # Plot
-        import matplotlib.pyplot as plt
-        import matplotlib.ticker as mticker
-        fig, axs = plt.subplots(1, 3, figsize=(15, 4))
-        # Pie chart for health status
-        health_counts = Counter(t.health_status.name for t in self.forest_graph.trees.values())
-        color_map = {'HEALTHY': '#2ecc71', 'INFECTED': '#e74c3c', 'AT_RISK': '#f39c12'}
-        pie_colors = [color_map.get(k, '#95a5a6') for k in health_counts.keys()]
-        axs[0].pie(health_counts.values(), labels=health_counts.keys(), autopct='%1.1f%%', colors=pie_colors)
-        axs[0].set_title('Health Status Distribution')
-        # Bar chart for species
-        axs[1].bar(species_counter.keys(), species_counter.values(), color='#3498db')
-        axs[1].set_title('Species Distribution')
-        axs[1].set_ylabel('Count')
-        axs[1].tick_params(axis='x', rotation=30)
-        # Text summary
-        axs[2].axis('off')
-        summary = (
-            f"Infected: {infected_percent:.1f}%\n"
-            f"Reserve Count: {reserve_count}\n"
-            f"Max Reserve Size: {max_reserve}\n"
-            f"Most Common Species: {most_common_species} ({most_common_count})"
-        )
-        axs[2].text(0.1, 0.5, summary, fontsize=13, va='center', ha='left', wrap=True)
-        plt.tight_layout()
-        plt.show(block=False)  # 非阻塞显示
-        plt.close(fig)  # 防止多次弹窗导致崩溃
+        def plot_analysis():
+            import matplotlib.pyplot as plt
+            fig, axs = plt.subplots(1, 3, figsize=(15, 4))
+            # Pie chart for health status
+            color_map = {'HEALTHY': '#2ecc71', 'INFECTED': '#e74c3c', 'AT_RISK': '#f39c12'}
+            pie_colors = [color_map.get(k, '#95a5a6') for k in health_counts.keys()]
+            axs[0].pie(health_counts.values(), labels=health_counts.keys(), autopct='%1.1f%%', colors=pie_colors)
+            axs[0].set_title('Health Status Distribution')
+            # Bar chart for species
+            axs[1].bar(species_counter.keys(), species_counter.values(), color='#3498db')
+            axs[1].set_title('Species Distribution')
+            axs[1].set_ylabel('Count')
+            axs[1].tick_params(axis='x', rotation=30)
+            # Text summary
+            axs[2].axis('off')
+            summary = (
+                f"Infected: {infected_percent:.1f}%\n"
+                f"Reserve Count: {reserve_count}\n"
+                f"Max Reserve Size: {max_reserve}\n"
+                f"Most Common Species: {most_common_species} ({most_common_count})"
+            )
+            axs[2].text(0.1, 0.5, summary, fontsize=13, va='center', ha='left', wrap=True)
+            plt.tight_layout()
+            plt.show(block=False)
+            plt.close(fig)
+        plot_analysis()
         self.status_bar.config(text="📊 Forest analysis displayed.")
 def main():
     root = tk.Tk()
