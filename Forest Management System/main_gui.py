@@ -448,7 +448,7 @@ class ForestGUI:
                     if self.path_start != clicked_tree:
                         x1, y1 = self.tree_positions[self.path_start.tree_id]
                         x2, y2 = self.tree_positions[clicked_tree.tree_id]
-                        distance = np.sqrt((x2-x1)**2 + (y1-y2)**2)
+                        distance = np.sqrt((x2-x1)**2 + (y2-y1)**2)
                         path = Path(self.path_start, clicked_tree, distance)
                         self.forest_graph.add_path(path)
                         self.update_display()
@@ -736,14 +736,10 @@ class ForestGUI:
     def animate_infection(self, start_tree_id):
         import heapq
         infected = set()
-        # (预计传播时间, 距离, health优先级, 当前树id, 来源树id)
+        # (预计传播时间, 当前树id, 来源树id)
         queue = []
-        heapq.heappush(queue, (0, 0, 0, start_tree_id, None))
+        heapq.heappush(queue, (0, start_tree_id, None))
         step = 0
-        def health_priority(tree):
-            if self.forest_graph.trees[tree].health_status == HealthStatus.AT_RISK:
-                return 0
-            return 1  # HEALTHY
         def get_edge_weight(t1, t2):
             for p in self.forest_graph.paths:
                 if (p.tree1.tree_id == t1 and p.tree2.tree_id == t2) or (p.tree2.tree_id == t1 and p.tree1.tree_id == t2):
@@ -751,48 +747,42 @@ class ForestGUI:
             return float('inf')
         def step_func():
             nonlocal infected, queue, step
-            if not queue:
+            while queue:
+                cur_time, current, from_tree = heapq.heappop(queue)
+                if current in infected:
+                    continue
+                infected.add(current)
+                # 传播后健康状态变为INFECTED
+                if self.forest_graph.trees[current].health_status != HealthStatus.INFECTED:
+                    self.forest_graph.trees[current].health_status = HealthStatus.INFECTED
+                self._infection_highlight = infected.copy()
+                # 只允许INFECTED树传播
+                if self.forest_graph.trees[current].health_status == HealthStatus.INFECTED:
+                    neighbors = self.forest_graph.get_neighbors(current)
+                    for n in neighbors:
+                        if n in infected:
+                            continue
+                        if self.forest_graph.trees[n].health_status == HealthStatus.INFECTED:
+                            continue
+                        w = get_edge_weight(current, n)
+                        spread_time = cur_time + (w / 5.0) * 0.1
+                        heapq.heappush(queue, (spread_time, n, current))
                 self.update_display()
-                self.update_info()
-                self.status_bar.config(text=f"🦠 Infection simulation finished. {len(infected)} trees infected.")
-                messagebox.showinfo("Simulation Finished", f"Infection spread complete! Total infected: {len(infected)}")
+                self.status_bar.config(text=f"🦠 Infection step {step+1}: {len(infected)} infected")
+                step += 1
+                # 下一个传播时间
+                if queue:
+                    next_time = queue[0][0]
+                    delay = max(1, int((next_time - cur_time) * 1000))
+                else:
+                    delay = 500
+                self.root.after(delay, step_func)
                 return
-            # 取出传播时间最早的树
-            cur_time, dist, hprio, current, from_tree = heapq.heappop(queue)
-            if current in infected:
-                self.root.after(10, step_func)
-                return
-            infected.add(current)
-            # 传播后健康状态变为INFECTED
-            if self.forest_graph.trees[current].health_status != HealthStatus.INFECTED:
-                self.forest_graph.trees[current].health_status = HealthStatus.INFECTED
-            self._infection_highlight = infected.copy()
-            # 只允许INFECTED树传播
-            if self.forest_graph.trees[current].health_status == HealthStatus.INFECTED:
-                neighbors = self.forest_graph.get_neighbors(current)
-                # 过滤未感染的邻居
-                uninfected_neighbors = [n for n in neighbors if n not in infected and self.forest_graph.trees[n].health_status != HealthStatus.INFECTED]
-                # 按距离和health优先级排序
-                neighbor_info = []
-                for n in uninfected_neighbors:
-                    w = get_edge_weight(current, n)
-                    hprio = health_priority(n)
-                    neighbor_info.append((w, hprio, n))
-                neighbor_info.sort()  # 距离小优先，AT RISK优先
-                for w, hprio, n in neighbor_info:
-                    # 传播时间 = 距离/5*0.1
-                    spread_time = cur_time + (w / 5.0) * 0.1
-                    heapq.heappush(queue, (spread_time, w, hprio, n, current))
+            # 队列空，结束
             self.update_display()
-            self.status_bar.config(text=f"🦠 Infection step {step+1}: {len(infected)} infected")
-            step += 1
-            # 下一个传播时间
-            if queue:
-                next_time = queue[0][0]
-                delay = max(1, int((next_time - cur_time) * 1000))
-            else:
-                delay = 500
-            self.root.after(delay, step_func)
+            self.update_info()
+            self.status_bar.config(text=f"🦠 Infection simulation finished. {len(infected)} trees infected.")
+            messagebox.showinfo("Simulation Finished", f"Infection spread complete! Total infected: {len(infected)}")
         self._infection_highlight = set()
         step_func()
 
@@ -1095,35 +1085,32 @@ class ForestGUI:
         reserves = find_reserves(self.forest_graph)
         max_reserve = max((len(r) for r in reserves), default=0)
         reserve_count = len(reserves)
-        import matplotlib.pyplot as plt
-        fig, axs = plt.subplots(1, 3, figsize=(15, 4))
-        # Pie chart for health status
-        color_map = {'HEALTHY': '#2ecc71', 'INFECTED': '#e74c3c', 'AT_RISK': '#f39c12'}
-        pie_labels = list(health_counts.keys())
-        pie_values = list(health_counts.values())
-        pie_colors = [color_map.get(k, '#95a5a6') for k in pie_labels]
-        if pie_values:
-            axs[0].pie(pie_values, labels=pie_labels, autopct='%1.1f%%', colors=pie_colors)
-        axs[0].set_title('Health Status Distribution')
-        # Bar chart for species
-        bar_labels = list(species_counter.keys())
-        bar_values = list(species_counter.values())
-        if bar_values:
-            axs[1].bar(bar_labels, bar_values, color='#3498db')
-        axs[1].set_title('Species Distribution')
-        axs[1].set_ylabel('Count')
-        axs[1].tick_params(axis='x', rotation=30)
-        # Text summary
-        axs[2].axis('off')
-        summary = (
-            f"Infected: {infected_percent:.1f}%\n"
-            f"Reserve Count: {reserve_count}\n"
-            f"Max Reserve Size: {max_reserve}\n"
-            f"Most Common Species: {most_common_species} ({most_common_count})"
-        )
-        axs[2].text(0.1, 0.5, summary, fontsize=13, va='center', ha='left', wrap=True)
-        plt.tight_layout()
-        plt.show()  # 阻塞显示，用户手动关闭
+        def plot_analysis():
+            import matplotlib.pyplot as plt
+            fig, axs = plt.subplots(1, 3, figsize=(15, 4))
+            # Pie chart for health status
+            color_map = {'HEALTHY': '#2ecc71', 'INFECTED': '#e74c3c', 'AT_RISK': '#f39c12'}
+            pie_colors = [color_map.get(k, '#95a5a6') for k in health_counts.keys()]
+            axs[0].pie(health_counts.values(), labels=health_counts.keys(), autopct='%1.1f%%', colors=pie_colors)
+            axs[0].set_title('Health Status Distribution')
+            # Bar chart for species
+            axs[1].bar(species_counter.keys(), species_counter.values(), color='#3498db')
+            axs[1].set_title('Species Distribution')
+            axs[1].set_ylabel('Count')
+            axs[1].tick_params(axis='x', rotation=30)
+            # Text summary
+            axs[2].axis('off')
+            summary = (
+                f"Infected: {infected_percent:.1f}%\n"
+                f"Reserve Count: {reserve_count}\n"
+                f"Max Reserve Size: {max_reserve}\n"
+                f"Most Common Species: {most_common_species} ({most_common_count})"
+            )
+            axs[2].text(0.1, 0.5, summary, fontsize=13, va='center', ha='left', wrap=True)
+            plt.tight_layout()
+            plt.show()
+            plt.close(fig)
+        plot_analysis()
         self.status_bar.config(text="📊 Forest analysis displayed.")
 def main():
     root = tk.Tk()
