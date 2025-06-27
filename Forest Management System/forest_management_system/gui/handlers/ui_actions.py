@@ -136,19 +136,28 @@ class UIActions:
             messagebox.showwarning("Warning", "At least 2 trees are needed.", parent=self.root)
             return
         dialog = ShortestPathDialog(self.root, list(self.app.forest_graph.trees.keys()))
-        result = dialog.show()
-        if result:
-            start_id, end_id = result
-            path, dist = find_shortest_path(self.app.forest_graph, start_id, end_id)
-            if dist == float('inf'):
+        try:
+            result = dialog.show()
+            if result:
+                start_id, end_id = result
+                path, dist = find_shortest_path(self.app.forest_graph, start_id, end_id)
+                if dist == float('inf'):
+                    self.canvas._shortest_path_highlight = []
+                    self.app.update_display()
+                    messagebox.showinfo("No Path", "No path found between the selected trees.", parent=self.root)
+                else:
+                    self.canvas._shortest_path_highlight = path
+                    self.app.update_display()
+                    messagebox.showinfo("Path Found", f"Path: {path}\nDistance: {dist:.2f}", parent=self.root)
+                self.app.status_bar.set_text(f"🔵 Shortest Path: {dist:.2f}")
+            else:
+                # User cancelled, clear highlight
                 self.canvas._shortest_path_highlight = []
                 self.app.update_display()
-                messagebox.showinfo("No Path", "No path found between the selected trees.", parent=self.root)
-            else:
-                self.canvas._shortest_path_highlight = path
-                self.app.update_display()
-                messagebox.showinfo("Path Found", f"Path: {path}\nDistance: {dist:.2f}", parent=self.root)
-            self.app.status_bar.set_text(f"🔵 Shortest Path: {dist:.2f}")
+        finally:
+            # Always clear highlight after dialog closes
+            self.canvas._shortest_path_highlight = []
+            self.app.update_display()
 
     # Data Actions
     def load_data(self):
