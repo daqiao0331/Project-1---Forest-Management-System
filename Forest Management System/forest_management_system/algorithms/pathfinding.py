@@ -1,6 +1,6 @@
 def find_shortest_path(forest_graph, start_tree_id, end_tree_id):
     """
-    Dijkstra 
+    Finds the shortest path between two trees using Dijkstra's algorithm.
     """
     dist = {tid: float('inf') for tid in forest_graph.trees}
     prev = {tid: None for tid in forest_graph.trees}
@@ -8,7 +8,7 @@ def find_shortest_path(forest_graph, start_tree_id, end_tree_id):
     visited = set()
     n = len(forest_graph.trees)
     for _ in range(n):
-        # 找到未访问且距离最小的节点
+        # Find the unvisited node with the smallest distance
         u = None
         min_dist = float('inf')
         for tid in forest_graph.trees:
@@ -16,11 +16,11 @@ def find_shortest_path(forest_graph, start_tree_id, end_tree_id):
                 min_dist = dist[tid]
                 u = tid
         if u is None:
-            break  # 剩下的都是不可达
+            break  # The rest are unreachable
         visited.add(u)
         if u == end_tree_id:
             break
-        # 更新所有邻居的距离
+        # Update distances for all neighbors
         for path in forest_graph.paths:
             if path.tree1.tree_id == u:
                 v = path.tree2.tree_id
@@ -34,7 +34,7 @@ def find_shortest_path(forest_graph, start_tree_id, end_tree_id):
             if alt < dist[v]:
                 dist[v] = alt
                 prev[v] = u
-    # 还原路径
+    # Reconstruct the path
     path = []
     u = end_tree_id
     if prev[u] is not None or u == start_tree_id:

@@ -11,9 +11,10 @@ class TestInfectionSimulation(unittest.TestCase):
         # Find an infected tree as the start
         start = next(tid for tid, t in self.graph.trees.items() if t.health_status == HealthStatus.INFECTED)
         infected = simulate_infection(self.graph, start)
-        self.assertIn(start, infected)
-        # All infected trees应为可达
-        for tid in infected:
+        infected_ids = [item[0] for item in infected]
+        self.assertIn(start, infected_ids)
+        # All infected trees should be reachable
+        for tid in infected_ids:
             self.assertTrue(tid in self.graph.trees)
 
 if __name__ == '__main__':

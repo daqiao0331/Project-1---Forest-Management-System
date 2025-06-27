@@ -47,3 +47,7 @@ class ForestGraph:
         for p in self.paths:
             s += f'  {p}\n'
         return s
+
+    def clear(self):
+        self.trees.clear()
+        self.paths.clear()
