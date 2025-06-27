@@ -1,1 +1,0 @@
-# This file makes the 'panels' directory a package. 

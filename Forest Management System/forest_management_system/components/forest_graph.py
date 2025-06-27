@@ -7,6 +7,9 @@ class ForestGraph:
         self.paths = []
 
     def add_tree(self, tree: Tree):
+        if tree.tree_id in self.trees:
+            # fix: raise exception instead of returning False
+            raise ValueError(f"Tree with id {tree.tree_id} already exists.")
         self.trees[tree.tree_id] = tree
 
     def remove_tree(self, tree_id):
