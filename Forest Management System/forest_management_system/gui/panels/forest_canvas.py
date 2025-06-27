@@ -13,17 +13,16 @@ class ForestCanvas:
     def __init__(self, parent):
         self.frame = tk.Frame(parent, bg='#ffffff')
         self.frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(20, 0))  # 增加左侧填充，给画布更多空间
-
-        # 右侧状态图例
+ 
         self.legend_frame = tk.Frame(self.frame, bg='#ffffff')
         self.legend_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(5, 30), pady=(350, 30))  # 减少右侧边距，为画布留更多空间
         legend_title = tk.Label(self.legend_frame, text="Tree Status Legend", font=('Segoe UI', 23, 'bold'), fg='#2c3e50', bg='#ffffff')
         legend_title.pack(pady=(0, 15))
 
-        # 添加图例项
+        # Add legend item
         def add_legend_item(emoji, text, color):
             row = tk.Frame(self.legend_frame, bg='#ffffff')
-            row.pack(pady=10)  # 增加了项目间距
+            row.pack(pady=10)  
             tk.Label(row, text=emoji, font=('Segoe UI', 30), fg=color, bg='#ffffff').pack(side=tk.LEFT)
             tk.Label(row, text=text, font=('Segoe UI', 20), fg='#2c3e50', bg='#ffffff', padx=10).pack(side=tk.LEFT)
 
@@ -37,9 +36,9 @@ class ForestCanvas:
         viz_title.pack(pady=(5, 10))
 
         plt.style.use('default')
-        self.fig, self.ax = plt.subplots(figsize=(32, 24), facecolor='#ffffff')  # 增加图形尺寸
+        self.fig, self.ax = plt.subplots(figsize=(16, 10), dpi=100, facecolor='#ffffff')  # 16*100=1600, 10*100=1000
         self.canvas = FigureCanvasTkAgg(self.fig, self.frame)
-        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=5, pady=5)  # 减少内边距，让画布占用更多空间
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=5, pady=5)  
         
         # Interaction state variables
         self.selected_tree = None
@@ -102,7 +101,7 @@ class ForestCanvas:
                     self.ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
                         arrowprops=dict(arrowstyle='->', color='#e74c3c', lw=2), zorder=2)
                 mx, my = (x1+x2)/2, (y1+y2)/2
-                # 修改权重显示样式，只改变字体大小和背景
+                
                 self.ax.text(mx, my, f'{path.weight:.1f}', fontsize=14, color='#7f8c8d', zorder=10, 
                            bbox=dict(fc='white', alpha=0.7, boxstyle='round,pad=0.2'))
 
@@ -141,10 +140,9 @@ class ForestCanvas:
     def hide_tooltip(self):
         if self._tooltip:
             try:
-                # 安全地移除工具提示，避免使用remove()方法
+                # Safely remove the tooltip without using remove()
                 self._tooltip.set_visible(False)
                 self._tooltip = None
                 self.canvas.draw_idle()
             except Exception:
-                # 如果出现任何错误，直接重置工具提示
                 self._tooltip = None 

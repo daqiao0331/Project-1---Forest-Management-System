@@ -47,7 +47,7 @@ class LoadDataDialog:
         tree_file_entry = ttk.Entry(tree_file_frame, textvariable=self.tree_file_var, font=('Segoe UI', 10), width=60)
         tree_file_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         
-        # 创建柔和的绿色按钮样式
+        
         button_style = {
             'font': ('Segoe UI', 11),
             'width': 10,
@@ -81,7 +81,7 @@ class LoadDataDialog:
         button_frame = tk.Frame(form_frame, bg='#f0f0f0')
         button_frame.pack(fill=tk.X, pady=(35, 0))
         
-        # 主要按钮使用更大的尺寸
+        
         main_button_style = {
             'font': ('Segoe UI', 12),
             'width': 20,

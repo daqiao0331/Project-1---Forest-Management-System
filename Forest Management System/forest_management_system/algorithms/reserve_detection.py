@@ -19,7 +19,7 @@ def find_reserves(forest_graph):
             group = set()
             dfs(tree_id, group)
             if len(group) >= 3:
-                # 检查 group 是否为完全图
+                # check if the group is a clique
                 is_clique = True
                 group_list = list(group)
                 for i in range(len(group_list)):
@@ -32,7 +32,7 @@ def find_reserves(forest_graph):
                         break
                 if not is_clique:
                     continue
-                # 检查 group 内所有树是否都没有与外部非健康树直接相连
+                # Check if the group is isolated from infected trees
                 isolated = True
                 for tid in group:
                     for neighbor in forest_graph.get_neighbors(tid):

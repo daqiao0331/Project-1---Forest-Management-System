@@ -45,7 +45,7 @@ class CanvasEventsHandler:
             new_y = max(5, min(95, event.ydata))
             self.app.tree_positions[self.drag_tree.tree_id] = (new_x, new_y)
             
-            # 更新与拖动树相关的所有路径的权重
+            # Update paths connected to the dragged tree
             for path in self.app.forest_graph.paths:
                 if path.tree1.tree_id == self.drag_tree.tree_id or path.tree2.tree_id == self.drag_tree.tree_id:
                     pos1 = self.app.tree_positions[path.tree1.tree_id]

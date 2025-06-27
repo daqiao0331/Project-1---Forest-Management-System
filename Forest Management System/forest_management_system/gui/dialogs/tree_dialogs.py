@@ -48,7 +48,7 @@ class AddTreeDialog:
         button_frame = tk.Frame(form_frame, bg='#f0f0f0')
         button_frame.grid(row=4, columnspan=2, pady=(35, 0))
         
-        # 创建柔和的绿色按钮样式
+        
         button_style = {
             'font': ('Segoe UI', 12),
             'width': 20,
@@ -62,18 +62,17 @@ class AddTreeDialog:
         add_button = tk.Button(button_frame, text="✚ Add Tree", command=self._on_ok, **button_style)
         add_button.pack(side=tk.LEFT, padx=12)
         
-        # 鼠标悬停效果
+        
         add_button.bind('<Enter>', lambda e: e.widget.configure(bg='#45a049'))
         add_button.bind('<Leave>', lambda e: e.widget.configure(bg='#4CAF50'))
         
         cancel_button = tk.Button(button_frame, text="✖ Cancel", command=self.dialog.destroy, **button_style)
         cancel_button.pack(side=tk.LEFT, padx=12)
         
-        # 鼠标悬停效果
+        
         cancel_button.bind('<Enter>', lambda e: e.widget.configure(bg='#45a049'))
         cancel_button.bind('<Leave>', lambda e: e.widget.configure(bg='#4CAF50'))
 
-        # Configure grid
         form_frame.grid_columnconfigure(1, weight=1)
 
         self.result = None
@@ -138,7 +137,6 @@ class DeleteTreeDialog:
         button_frame = tk.Frame(form_frame, bg='#f0f0f0')
         button_frame.grid(row=3, columnspan=2, pady=(35, 0))
         
-        # 创建柔和的绿色按钮样式
         button_style = {
             'font': ('Segoe UI', 12),
             'width': 20,
@@ -218,7 +216,6 @@ class ModifyHealthDialog:
         button_frame = tk.Frame(form_frame, bg='#f0f0f0')
         button_frame.grid(row=3, columnspan=2, pady=(35, 0))
         
-        # 创建柔和的绿色按钮样式
         button_style = {
             'font': ('Segoe UI', 12),
             'width': 20,

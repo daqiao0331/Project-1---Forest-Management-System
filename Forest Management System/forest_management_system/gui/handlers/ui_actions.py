@@ -163,9 +163,9 @@ class UIActions:
             for tree_id in self.app.forest_graph.trees:
                 self.app.tree_positions[tree_id] = (random.uniform(10, 90), random.uniform(10, 90))
             self.app.update_display()
-            self.app.status_bar.set_text("✅ 数据加载成功。")
+            self.app.status_bar.set_text("✅ Data loaded successfully")
         except Exception as e:
-            messagebox.showerror("Error", f"数据加载失败: {e}", parent=self.root)
+            messagebox.showerror("Error", f"Failed to load data: {e}", parent=self.root)
 
     def save_data(self):
         if not self.app.forest_graph.trees:
@@ -251,12 +251,12 @@ class UIActions:
             self.app.status_bar.set_text("⚠️ Please click an INFECTED tree.")
             
     def _animate_infection(self, start_tree_id):
-        """动画化BFS感染传播，边和节点高亮，节点加传染标识。"""
+        """ Simulate and animate the infection spread starting from a given tree ID."""
         from ...algorithms.infection_simulation import simulate_infection
         import time
         infection_order = simulate_infection(self.app.forest_graph, start_tree_id)
         if not infection_order:
-            self.app.status_bar.set_text("⚠️ 感染模拟失败。")
+            self.app.status_bar.set_text("⚠️ failed")
             return
         highlight_nodes = set()
         highlight_edges = set()
@@ -265,26 +265,25 @@ class UIActions:
             highlight_nodes.add(tid)
             if from_id is not None:
                 highlight_edges.add((from_id, tid))
-            # 画布高亮：传递高亮节点和边
             self.canvas._infection_highlight = set(highlight_nodes)
             self.canvas._infection_edge_highlight = set(highlight_edges)
             self.canvas._infection_labels = {tid: ("🦠" if idx==0 else "⚡") for tid, _ in infection_order[:idx+1]}
             self.app.update_display()
             self.app.root.update()
             time.sleep(0.3)
-        self.app.status_bar.set_text(f"🦠 感染模拟完成，感染树数: {len(infection_order)}")
+        self.app.status_bar.set_text(f"🦠 Infection simulation complete, infected trees: {len(infection_order)}")
         self.canvas._infection_highlight = set()
         self.canvas._infection_edge_highlight = set()
         self.canvas._infection_labels = {}
         self.app.update_display()
 
     def analyze_forest(self):
-        """统计并可视化森林数据。"""
-        plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
-        plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
+        """Analyze the forest data and visualize it."""
+        plt.rcParams['font.sans-serif'] = ['SimHei']  # for Chinese label display
+        plt.rcParams['axes.unicode_minus'] = False  # for negative sign display
 
         if not self.app.forest_graph.trees:
-            messagebox.showinfo("数据分析", "当前森林没有树木。", parent=self.root)
+            messagebox.showinfo("data analysis", "The forest has no trees.", parent=self.root)
             return
         health_counts = Counter(t.health_status.name for t in self.app.forest_graph.trees.values())
         species_counts = Counter(t.species for t in self.app.forest_graph.trees.values())
@@ -296,23 +295,23 @@ class UIActions:
         reserve_count = len(reserves)
         max_reserve = max((len(r) for r in reserves), default=0)
         most_common_species, most_common_count = ('N/A', 0) if not species_counts else species_counts.most_common(1)[0]
-        # 绘图
+        # plot
         fig, axs = plt.subplots(1, 3, figsize=(15, 4))
         color_map = {'HEALTHY': '#2ecc71', 'INFECTED': '#e74c3c', 'AT_RISK': '#f39c12'}
         pie_colors = [color_map.get(k, '#95a5a6') for k in health_counts.keys()]
         axs[0].pie(health_counts.values(), labels=health_counts.keys(), autopct='%1.1f%%', colors=pie_colors)
-        axs[0].set_title('健康状态分布')
+        axs[0].set_title('health status distribution')
         axs[1].bar(species_counts.keys(), species_counts.values(), color='#3498db')
-        axs[1].set_title('物种分布')
-        axs[1].set_ylabel('数量')
+        axs[1].set_title('species distribution')
+        axs[1].set_ylabel('count')
         axs[1].tick_params(axis='x', rotation=30)
         axs[2].axis('off')
-        summary = (f"感染率: {infected_percent:.1f}%\n"
-                   f"保护区数量: {reserve_count}\n"
-                   f"最大保护区规模: {max_reserve}\n"
-                   f"最常见物种: {most_common_species} ({most_common_count})")
+        summary = (f"Infection Rate: {infected_percent:.1f}%\n"
+                   f"Reserve Count: {reserve_count}\n"
+                   f"Max Reserve Size: {max_reserve}\n"
+                   f"Most Common Species: {most_common_species} ({most_common_count})")
         axs[2].text(0.1, 0.5, summary, fontsize=13, va='center', ha='left', wrap=True)
         plt.tight_layout()
         plt.show()
         plt.close(fig)
-        self.app.status_bar.set_text("📊 森林分析已展示。")
+        self.app.status_bar.set_text("📊 Forest analysis has been displayed.")
