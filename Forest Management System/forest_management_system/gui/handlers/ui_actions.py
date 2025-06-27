@@ -186,7 +186,8 @@ class UIActions:
             tree_file_path = filedialog.asksaveasfilename(
                 defaultextension=".csv",
                 filetypes=[("CSV files", "*.csv")],
-                title="Save Trees Data As..."
+                title="Save Trees Data As...",
+                initialfile="trees.csv"
             )
             if not tree_file_path:
                 self.app.status_bar.set_text("⚠️ Save cancelled.")
@@ -196,7 +197,8 @@ class UIActions:
             path_file_path = filedialog.asksaveasfilename(
                 defaultextension=".csv",
                 filetypes=[("CSV files", "*.csv")],
-                title="Save Paths Data As..."
+                title="Save Paths Data As...",
+                initialfile="paths.csv"
             )
             if not path_file_path:
                 self.app.status_bar.set_text("⚠️ Save cancelled.")
@@ -287,7 +289,7 @@ class UIActions:
         self.app.update_display()
 
     def analyze_forest(self):
-        """Analyze the forest data and visualize it."""
+        """Analyze the forest data and visualize it, including the largest conservation area (reserve)."""
         plt.rcParams['font.sans-serif'] = ['SimHei']  # for Chinese label display
         plt.rcParams['axes.unicode_minus'] = False  # for negative sign display
 
@@ -304,8 +306,11 @@ class UIActions:
         reserve_count = len(reserves)
         max_reserve = max((len(r) for r in reserves), default=0)
         most_common_species, most_common_count = ('N/A', 0) if not species_counts else species_counts.most_common(1)[0]
+        # Find the largest reserve
+        largest = max(reserves, key=len) if reserves else []
+        largest_ids = sorted(largest) if largest else []
         # plot
-        fig, axs = plt.subplots(1, 3, figsize=(15, 4))
+        fig, axs = plt.subplots(1, 4, figsize=(22, 4))
         color_map = {'HEALTHY': '#2ecc71', 'INFECTED': '#e74c3c', 'AT_RISK': '#f39c12'}
         pie_colors = [color_map.get(k, '#95a5a6') for k in health_counts.keys()]
         axs[0].pie(health_counts.values(), labels=health_counts.keys(), autopct='%1.1f%%', colors=pie_colors)
@@ -318,8 +323,36 @@ class UIActions:
         summary = (f"Infection Rate: {infected_percent:.1f}%\n"
                    f"Reserve Count: {reserve_count}\n"
                    f"Max Reserve Size: {max_reserve}\n"
-                   f"Most Common Species: {most_common_species} ({most_common_count})")
+                   f"Most Common Species: {most_common_species} ({most_common_count})\n"
+                   f"Largest Reserve Members: {', '.join(map(str, largest_ids)) if largest_ids else 'N/A'}")
         axs[2].text(0.1, 0.5, summary, fontsize=13, va='center', ha='left', wrap=True)
+        # Largest reserve visualization
+        axs[3].set_title('Largest Conservation Area')
+        axs[3].set_xlabel('X')
+        axs[3].set_ylabel('Y')
+        if largest and len(largest) > 0:
+            xs = [self.app.tree_positions[tid][0] for tid in largest if tid in self.app.tree_positions]
+            ys = [self.app.tree_positions[tid][1] for tid in largest if tid in self.app.tree_positions]
+            all_xs = [pos[0] for pos in self.app.tree_positions.values()]
+            all_ys = [pos[1] for pos in self.app.tree_positions.values()]
+            axs[3].scatter(all_xs, all_ys, c='#bdc3c7', s=30, alpha=0.5, label='Other Trees')
+            axs[3].scatter(xs, ys, c='#27ae60', s=60, label='Reserve Member', zorder=3, edgecolors='k')
+            if xs and ys:
+                import numpy as np
+                from matplotlib.patches import Circle
+                center_x = np.mean(xs)
+                center_y = np.mean(ys)
+                max_r = max(np.sqrt((np.array(xs)-center_x)**2 + (np.array(ys)-center_y)**2)) if len(xs)>1 else 10
+                circle = Circle((center_x, center_y), max_r+8, color='#27ae60', alpha=0.12, zorder=2)
+                axs[3].add_patch(circle)
+            for i, tid in enumerate(largest_ids):
+                if tid in self.app.tree_positions:
+                    axs[3].text(self.app.tree_positions[tid][0], self.app.tree_positions[tid][1], str(tid), fontsize=10, ha='center', va='center', color='#145a32', zorder=4)
+            axs[3].legend()
+        else:
+            axs[3].text(0.5, 0.5, 'No conservation area', fontsize=12, ha='center', va='center')
+            axs[3].set_xticks([])
+            axs[3].set_yticks([])
         plt.tight_layout()
         plt.show()
         plt.close(fig)

@@ -44,8 +44,10 @@ class InfoPanel:
         
         try:
             reserves = find_reserves_func(forest_graph)
+            reserve_count = len(reserves)
             max_reserve = max((len(r) for r in reserves), default=0)
         except Exception:
+            reserve_count = 0
             max_reserve = 0
             
         infected_count = sum(1 for t in forest_graph.trees.values() if t.health_status.name == "INFECTED")
@@ -55,7 +57,8 @@ class InfoPanel:
         info += "="*30 + "\n"
         info += f"📊 Tree Count: {tree_count}\n"
         info += f"🛤️ Path Count: {path_count}\n"
-        info += f"🟦 Max Reserve Size: {max_reserve}\n"
+        info += f"🏕️ Reserve Count: {reserve_count}\n"
+        info += f"🏞️ Max Reserve Size: {max_reserve}\n"
         info += f"🔴 Infected %: {infected_percent:.1f}%\n\n"
         
         health_stats = Counter(t.health_status.name for t in forest_graph.trees.values())
@@ -72,4 +75,4 @@ class InfoPanel:
             info += f"🌲 {species}: {count}\n"
             
         self.info_text.insert(1.0, info)
-        self.info_text.config(state=tk.DISABLED) 
+        self.info_text.config(state=tk.DISABLED)
