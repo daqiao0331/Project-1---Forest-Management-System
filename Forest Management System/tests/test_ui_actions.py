@@ -106,7 +106,7 @@ class TestUIActions(unittest.TestCase):
 
     @patch('forest_management_system.gui.handlers.ui_actions.AddTreeDialog')
     def add_tree(self, MockAddTreeDialog):
-        dialog = AddTreeDialog(self.app.root)
+        dialog = MockAddTreeDialog(self.app.root)
         result = dialog.show()
         if result is not None:
             # Assume result is a dict with species, age, health
