@@ -8,6 +8,9 @@ import heapq
 import matplotlib.pyplot as plt
 from collections import Counter
 from tkinter import messagebox, filedialog, simpledialog
+import networkx as nx
+from sklearn.manifold import MDS
+import scipy.optimize
 
 from ...components.tree import Tree
 from ...components.path import Path
@@ -136,6 +139,12 @@ class UIActions:
             self.app.update_display()
             self.app.status_bar.set_text(f"✅ Path deleted.")
 
+    def clear_shortest_path(self):
+        """Clear the shortest path highlight from the canvas and reset status bar."""
+        self.canvas._shortest_path_highlight = []
+        self.app.update_display()
+        self.app.status_bar.set_text("🔵 Shortest path highlight cleared.")
+
     def find_shortest_path(self):
         if len(self.app.forest_graph.trees) < 2:
             messagebox.showwarning("Warning", "At least 2 trees are needed.", parent=self.root)
@@ -155,6 +164,9 @@ class UIActions:
                 messagebox.showinfo("Path Found", f"Path: {path}\nDistance: {dist:.2f}", parent=self.root)
             self.app.status_bar.set_text(f"🔵 Shortest Path: {dist:.2f}")
 
+            self.canvas._shortest_path_highlight = []
+            self.app.update_display()
+
     # Data Actions
     def load_data(self):
         dialog = LoadDataDialog(self.root)
@@ -165,10 +177,24 @@ class UIActions:
         try:
             self.app.forest_graph = load_forest_from_files(tree_file, path_file)
             self.app.tree_positions.clear()
-            for tree_id in self.app.forest_graph.trees:
-                self.app.tree_positions[tree_id] = (random.uniform(10, 90), random.uniform(10, 90))
+            # 力导向布局（spring_layout），1/distance为权重，归一化到画布
+            G = nx.Graph()
+            for path in self.app.forest_graph.paths:
+                w = 1.0 / max(path.weight, 1e-6)
+                G.add_edge(path.tree1.tree_id, path.tree2.tree_id, weight=w)
+            pos = nx.spring_layout(G, weight='weight', scale=80, center=(50, 50), seed=42)
+            xs = [p[0] for p in pos.values()]
+            ys = [p[1] for p in pos.values()]
+            min_x, max_x = min(xs), max(xs)
+            min_y, max_y = min(ys), max(ys)
+            for tree_id, (x, y) in pos.items():
+                norm_x = 10 + 80 * (x - min_x) / (max_x - min_x) if max_x > min_x else 50
+                norm_y = 10 + 80 * (y - min_y) / (max_y - min_y) if max_y > min_y else 50
+                self.app.tree_positions[tree_id] = (norm_x, norm_y)
+            # 禁止拖动
+            self.app.main_window.forest_canvas.drag_enabled = False
             self.app.update_display()
-            self.app.status_bar.set_text("✅ Data loaded successfully.")
+            self.app.status_bar.set_text("✅ Data loaded (force-directed layout, dragging disabled)")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load data: {e}", parent=self.root)
 
@@ -178,21 +204,23 @@ class UIActions:
             return
 
         try:
-            # Ask for tree file path
+            # Ask for tree file path, default name: trees.csv
             tree_file_path = filedialog.asksaveasfilename(
                 defaultextension=".csv",
                 filetypes=[("CSV files", "*.csv")],
-                title="Save Trees Data As..."
+                title="Save Trees Data As...",
+                initialfile="trees.csv"
             )
             if not tree_file_path:
                 self.app.status_bar.set_text("⚠️ Save cancelled.")
                 return
 
-            # Ask for path file path
+            # Ask for path file path, default name: paths.csv
             path_file_path = filedialog.asksaveasfilename(
                 defaultextension=".csv",
                 filetypes=[("CSV files", "*.csv")],
-                title="Save Paths Data As..."
+                title="Save Paths Data As...",
+                initialfile="paths.csv"
             )
             if not path_file_path:
                 self.app.status_bar.set_text("⚠️ Save cancelled.")
@@ -224,11 +252,22 @@ class UIActions:
             self.app.forest_graph.clear()
             self.app.tree_positions.clear()
             self.canvas.selected_tree = None
-            self.exit_add_path()
-            self.exit_delete_path()
-            self.exit_infection_sim_mode()
-            self.app.update_display()
+            self.add_path_mode = False
+            self.delete_path_mode = False
+            self.infection_sim_mode = False
+            self.canvas.path_start = None
+            self.delete_tree_mode = False
+            self.canvas._shortest_path_highlight = []
+            self.canvas._infection_highlight = set()
+            self.canvas._infection_edge_highlight = set()
+            self.canvas._infection_labels = {}
+            # Reset all control panel buttons
+            self.control_panel.add_path_btn.config(text="🔗 Add Path", command=self.start_add_path, style='Modern.TButton')
+            self.control_panel.delete_path_btn.config(text="✂️ Delete Path", command=self.start_delete_path, style='Modern.TButton')
+            self.control_panel.delete_tree_btn.config(text="🌳 Delete Tree", command=self.start_delete_tree, style='Modern.TButton')
+            self.control_panel.infection_sim_btn.config(text="🦠 Infection Sim", command=self.enter_infection_sim_mode, style='Modern.TButton')
             self.app.status_bar.set_text("✅ Data cleared.")
+            self.app.update_display()
 
     # Simulation and Analysis
     def enter_infection_sim_mode(self):

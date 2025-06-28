@@ -39,6 +39,11 @@ class ForestGraph:
                 neighbors.append(path.tree1.tree_id)
         return neighbors
 
+    def clear(self):
+        """Remove all trees and paths from the forest graph."""
+        self.trees.clear()
+        self.paths.clear()
+
     def __repr__(self):
         s = 'ForestGraph:\n'
         for t in self.trees.values():
