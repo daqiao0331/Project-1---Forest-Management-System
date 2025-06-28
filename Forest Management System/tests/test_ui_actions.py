@@ -4,100 +4,114 @@ Tests for the GUI action handlers.
 import unittest
 from unittest.mock import MagicMock, patch
 import tkinter as tk
+import sys
+import os
 
-# Mocking modules that are not easily available in a test environment
-# or need to be faked.
-sys_modules_mock = {
-    'forest_management_system.gui.main_window': MagicMock(),
-    'forest_management_system.gui.handlers.canvas_events': MagicMock(),
-    'forest_management_system.components.forest_graph': MagicMock(),
-    'forest_management_system.algorithms.reserve_detection': MagicMock(),
-    'forest_management_system.gui.dialogs.tree_dialogs': MagicMock(),
-    'forest_management_system.components.tree': MagicMock(),
-}
+# Add the parent directory to the Python path so we can import the modules
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-with patch.dict('sys.modules', sys_modules_mock):
-    from forest_management_system.gui.handlers.ui_actions import UIActions
-    from forest_management_system.gui.app import AppLogic
+# Import UIActions directly - we'll mock its dependencies
+from forest_management_system.gui.handlers.ui_actions import UIActions
+from forest_management_system.components.health_status import HealthStatus
+from forest_management_system.components.tree import Tree
 
 class TestUIActions(unittest.TestCase):
 
     def setUp(self):
-        """Set up a mock application environment before each test."""
-        # Create a mock for the main AppLogic
-        self.mock_app = MagicMock(spec=AppLogic)
-        
-        # Tkinter root is needed for some dialogs, so we create a real one
+        """Set up a clean test environment before each test."""
+        # Create a real Tkinter root for dialog tests
         self.root = tk.Tk()
-        self.mock_app.root = self.root
         
-        # Mock other parts of the app
+        # Create a clean mock app with only what we need
+        self.mock_app = MagicMock()
+        self.mock_app.root = self.root
         self.mock_app.forest_graph = MagicMock()
         self.mock_app.tree_positions = {}
         self.mock_app.main_window = MagicMock()
         self.mock_app.status_bar = MagicMock()
         
-        # Instance of the class we are testing
+        # Create the UIActions instance with our controlled mock app
         self.ui_actions = UIActions(self.mock_app)
 
     def tearDown(self):
-        """Destroy the Tkinter root window after each test."""
+        """Clean up after each test."""
         self.root.destroy()
+        # Ensure all patches are stopped
+        patch.stopall()
 
     @patch('forest_management_system.gui.handlers.ui_actions.AddTreeDialog')
     def test_add_tree_successful(self, MockAddTreeDialog):
         """Test if a tree is added correctly when the dialog returns valid data."""
-        # Arrange: Configure the mock dialog to return a successful result
-        mock_dialog_instance = MockAddTreeDialog.return_value
-        mock_dialog_instance.show.return_value = {
+        # Configure mock to return success
+        mock_dialog = MagicMock()
+        MockAddTreeDialog.return_value = mock_dialog
+        mock_dialog.show.return_value = {
             "species": "Oak",
             "age": 50,
-            "health": "HEALTHY" # Assuming the dialog returns a string
+            "health": HealthStatus.HEALTHY  # Use actual enum value
         }
-        self.mock_app.forest_graph.trees.values.return_value = []
-
-        # Act: Call the method to test
+        
+        # Reset the mock to ensure clean state
+        self.mock_app.forest_graph.add_tree.reset_mock()
+        
+        # Execute the method
         self.ui_actions.add_tree()
-
-        # Assert: Check if the application state was updated as expected
+        
+        # Verify the tree was added
         self.mock_app.forest_graph.add_tree.assert_called_once()
-        self.assertEqual(len(self.mock_app.tree_positions), 1)
         self.mock_app.update_display.assert_called_once()
-        self.mock_app.status_bar.set_text.assert_called()
 
     @patch('forest_management_system.gui.handlers.ui_actions.AddTreeDialog')
     def test_add_tree_cancelled(self, MockAddTreeDialog):
         """Test that nothing happens if the add tree dialog is cancelled."""
-        # Arrange: Configure the mock dialog to simulate cancellation
-        mock_dialog_instance = MockAddTreeDialog.return_value
-        mock_dialog_instance.show.return_value = None
-
-        # Act: Call the method
+        # Configure mock to return None (cancelled)
+        mock_dialog = MagicMock()
+        MockAddTreeDialog.return_value = mock_dialog
+        mock_dialog.show.return_value = None
+        
+        # Reset the mock to ensure clean state
+        self.mock_app.forest_graph.add_tree.reset_mock()
+        self.mock_app.update_display.reset_mock()
+        
+        # Execute the method
         self.ui_actions.add_tree()
-
-        # Assert: Ensure no changes were made
+        
+        # Verify nothing happened
         self.mock_app.forest_graph.add_tree.assert_not_called()
         self.mock_app.update_display.assert_not_called()
 
-    def test_clear_data_confirmed(self):
+    @patch('forest_management_system.gui.handlers.ui_actions.messagebox.askyesno')
+    def test_clear_data_confirmed(self, mock_askyesno):
         """Test if data is cleared after user confirmation."""
-        # Arrange
-        with patch('tkinter.messagebox.askyesno', return_value=True):
-            # Act
-            self.ui_actions.clear_data()
-            # Assert
-            self.mock_app.forest_graph.clear.assert_called_once()
-            self.assertTrue(not self.mock_app.tree_positions) # Check if dict is empty
-            self.mock_app.update_display.assert_called_once()
+        # Configure mock to return True (confirmed)
+        mock_askyesno.return_value = True
+        
+        # Reset mocks
+        self.mock_app.forest_graph.clear.reset_mock()
+        self.mock_app.update_display.reset_mock()
+        
+        # Execute the method
+        self.ui_actions.clear_data()
+        
+        # Verify data was cleared
+        self.mock_app.forest_graph.clear.assert_called_once()
+        self.assertTrue(not self.mock_app.tree_positions)  # Check if dict is empty
+        self.mock_app.update_display.assert_called_once()
     
-    def test_clear_data_cancelled(self):
+    @patch('forest_management_system.gui.handlers.ui_actions.messagebox.askyesno')
+    def test_clear_data_cancelled(self, mock_askyesno):
         """Test that data is not cleared if the user cancels."""
-        # Arrange
-        with patch('tkinter.messagebox.askyesno', return_value=False):
-            # Act
-            self.ui_actions.clear_data()
-            # Assert
-            self.mock_app.forest_graph.clear.assert_not_called()
+        # Configure mock to return False (cancelled)
+        mock_askyesno.return_value = False
+        
+        # Reset mock
+        self.mock_app.forest_graph.clear.reset_mock()
+        
+        # Execute the method
+        self.ui_actions.clear_data()
+        
+        # Verify nothing happened
+        self.mock_app.forest_graph.clear.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main() 

@@ -1,6 +1,10 @@
 import unittest
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from forest_management_system.components.tree import Tree
-from forest_management_system.algorithms import find_trees_by_health, count_trees_by_species
+from forest_management_system.components.utils import find_trees_by_health, count_trees_by_species
 from forest_management_system.components.health_status import HealthStatus
 
 class TestUtils(unittest.TestCase):

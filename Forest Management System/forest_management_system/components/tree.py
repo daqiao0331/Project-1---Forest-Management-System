@@ -6,17 +6,30 @@ class Tree:
         self.species = species
         self.age = age
         self.forest = forest
-        self.health_status = None
         self.set_health_status(health_status)
 
     def set_health_status(self, status):
-        from .health_status import HealthStatus
-        if not isinstance(status, HealthStatus):
-            try:
-                status = HealthStatus(status)
-            except Exception:
-                raise ValueError("health_status must be an instance of HealthStatus Enum")
-        self.health_status = status
+        if isinstance(status, HealthStatus):
+            self._health_status = status
+            return
+        try:
+            if isinstance(status, str):
+                try:
+                    self._health_status = HealthStatus[status.upper()]
+                except KeyError:
+                    self._health_status = HealthStatus(status.lower())
+            else:
+                self._health_status = HealthStatus(status)
+        except (ValueError, TypeError, KeyError):
+            raise ValueError(f"'{status}' is not a valid HealthStatus or cannot be converted.")
+
+    @property
+    def health_status(self):
+        return self._health_status
+    
+    @health_status.setter
+    def health_status(self, status):
+        self.set_health_status(status)
 
     def __repr__(self):
         return (f"Tree(id={self.tree_id}, species={self.species}, age={self.age}, "
