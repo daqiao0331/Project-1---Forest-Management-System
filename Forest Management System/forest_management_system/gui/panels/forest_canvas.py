@@ -69,8 +69,7 @@ class ForestCanvas:
         self.ax.clear()
         self.ax.set_xlim(0, 100)
         self.ax.set_ylim(0, 100)
-        self.ax.set_aspect('equal', adjustable='box')
-        self.ax.autoscale(False)
+        self.ax.set_aspect('equal')
         self.ax.grid(True, alpha=0.2, color='#bdc3c7')
         self.ax.set_facecolor('#f8f9fa')
         
@@ -146,4 +145,4 @@ class ForestCanvas:
                 self._tooltip = None
                 self.canvas.draw_idle()
             except Exception:
-                self._tooltip = None
+                self._tooltip = None 
