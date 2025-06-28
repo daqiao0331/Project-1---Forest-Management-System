@@ -48,13 +48,8 @@ class CanvasEventsHandler:
             new_y = max(5, min(95, event.ydata))
             self.app.tree_positions[self.drag_tree.tree_id] = (new_x, new_y)
             
-            # Update paths connected to the dragged tree
-            for path in self.app.forest_graph.paths:
-                if path.tree1.tree_id == self.drag_tree.tree_id or path.tree2.tree_id == self.drag_tree.tree_id:
-                    pos1 = self.app.tree_positions[path.tree1.tree_id]
-                    pos2 = self.app.tree_positions[path.tree2.tree_id]
-                    new_weight = np.sqrt((pos2[0] - pos1[0])**2 + (pos2[1] - pos1[1])**2)
-                    path.weight = new_weight
+            # Don't update path distances when moving trees, keep original distances unchanged
+            # Visually the tree position changes, but the path weights remain the same
             
             self.app.update_display()
             self.app.status_bar.set_text(f"🔄 Moving Tree {self.drag_tree.tree_id}")

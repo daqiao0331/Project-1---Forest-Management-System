@@ -12,10 +12,10 @@ class ForestCanvas:
     """Manages the Matplotlib canvas for displaying the forest."""
     def __init__(self, parent):
         self.frame = tk.Frame(parent, bg='#ffffff')
-        self.frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(20, 0))  # 增加左侧填充，给画布更多空间
+        self.frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(20, 0))  # Increase left padding for more canvas space
  
         self.legend_frame = tk.Frame(self.frame, bg='#ffffff')
-        self.legend_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(5, 30), pady=(350, 30))  # 减少右侧边距，为画布留更多空间
+        self.legend_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(5, 30), pady=(350, 30))  # Reduce right margin for more canvas space
         legend_title = tk.Label(self.legend_frame, text="Tree Status Legend", font=('Segoe UI', 23, 'bold'), fg='#2c3e50', bg='#ffffff')
         legend_title.pack(pady=(0, 15))
 
@@ -82,28 +82,47 @@ class ForestCanvas:
                 center_x, center_y = sum(xs) / len(xs), sum(ys) / len(ys)
                 radius = max(np.sqrt((x - center_x)**2 + (y - center_y)**2) for x, y in positions) + 18
                 self.ax.add_patch(Circle((center_x, center_y), radius, color='#7ed6df', alpha=0.18, zorder=0))
-
+        
+        # Get all path weights for comparison and drawing
+        path_weights = [path.weight for path in forest_graph.paths]
+        max_weight = max(path_weights) if path_weights else 1
+        min_weight = min(path_weights) if path_weights else 1
+        
         # Draw Paths
         for path in forest_graph.paths:
             if path.tree1.tree_id in tree_positions and path.tree2.tree_id in tree_positions:
                 x1, y1 = tree_positions[path.tree1.tree_id]
                 x2, y2 = tree_positions[path.tree2.tree_id]
+                
+                # Calculate visual distance versus actual weight
+                visual_dist = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+                norm_weight = (path.weight - min_weight) / (max_weight - min_weight) if max_weight > min_weight else 0.5
+                
                 is_shortest = any((path.tree1.tree_id == self._shortest_path_highlight[i] and path.tree2.tree_id == self._shortest_path_highlight[i+1]) or \
                                   (path.tree2.tree_id == self._shortest_path_highlight[i] and path.tree1.tree_id == self._shortest_path_highlight[i+1]) for i in range(len(self._shortest_path_highlight)-1))
                 is_infection = hasattr(self, '_infection_edge_highlight') and ((path.tree1.tree_id, path.tree2.tree_id) in getattr(self, '_infection_edge_highlight', set()) or (path.tree2.tree_id, path.tree1.tree_id) in getattr(self, '_infection_edge_highlight', set()))
+                
+                # Use uniform line color and thickness
                 color = '#e74c3c' if is_infection else ('#2980b9' if is_shortest else '#95a5a6')
+                
+                # Use fixed thickness, not varying by weight
                 lw = 5 if is_infection else (4 if is_shortest else 2)
-                alpha = 1.0 if is_infection else (0.9 if is_shortest else 0.6)
+                
+                alpha = 1.0 if is_infection else (0.9 if is_shortest else 0.7)
                 self.ax.plot([x1, x2], [y1, y2], color=color, alpha=alpha, linewidth=lw, zorder=1)
+                
                 if is_infection:
                     dx, dy = x2-x1, y2-y1
                     arr_x, arr_y = x1 + dx*0.6, y1 + dy*0.6
                     self.ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
                         arrowprops=dict(arrowstyle='->', color='#e74c3c', lw=2), zorder=2)
+                
+                # Calculate label position
                 mx, my = (x1+x2)/2, (y1+y2)/2
                 
-                self.ax.text(mx, my, f'{path.weight:.1f}', fontsize=14, color='#7f8c8d', zorder=10, 
-                           bbox=dict(fc='white', alpha=0.7, boxstyle='round,pad=0.2'))
+                # Display weight with uniform background color
+                self.ax.text(mx, my, f'{path.weight:.1f}', fontsize=12, color='#2c3e50', zorder=10, 
+                           bbox=dict(fc='white', alpha=0.7, boxstyle='round,pad=0.2', ec='#95a5a6', lw=0.5))
 
         # Draw Trees
         health_colors = {HealthStatus.HEALTHY: '#2ecc71', HealthStatus.INFECTED: '#e74c3c', HealthStatus.AT_RISK: '#f39c12'}

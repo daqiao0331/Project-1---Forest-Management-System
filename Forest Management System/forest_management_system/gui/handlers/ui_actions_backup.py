@@ -109,7 +109,7 @@ class UIActions:
             self.app.status_bar.set_text(f"🖱️ Tree {clicked_tree.tree_id} selected. Click the second tree.")
         else:
             if self.canvas.path_start != clicked_tree:
-                # Automatically calculate distance for the new path
+                # 自动计算新路径的距离
                 pos1 = self.app.tree_positions[self.canvas.path_start.tree_id]
                 pos2 = self.app.tree_positions[clicked_tree.tree_id]
                 distance = np.sqrt((pos2[0]-pos1[0])**2 + (pos2[1]-pos1[1])**2)
@@ -179,12 +179,12 @@ class UIActions:
             self.app.forest_graph = load_forest_from_files(tree_file, path_file)
             self.app.tree_positions.clear()
             
-            # Create custom force-directed layout
+            # 创建自定义力导向布局
             import random
             import numpy as np
             from collections import defaultdict
             
-            # Get all tree IDs
+            # 获取所有树的ID
             trees = list(self.app.forest_graph.trees.keys())
             n_trees = len(trees)
             
@@ -193,96 +193,96 @@ class UIActions:
                 self.app.status_bar.set_text("✅ No trees to display.")
                 return
             
-            # Initial random positions - more dispersed across the canvas
+            # 初始随机位置 - 更加分散在画布范围内
             positions = {}
             for tree_id in trees:
                 positions[tree_id] = (
-                    random.uniform(10, 90),  # x: 10-90, wider range
-                    random.uniform(10, 90)   # y: 10-90, wider range
+                    random.uniform(10, 90),  # x: 10-90，更宽范围
+                    random.uniform(10, 90)   # y: 10-90，更宽范围
                 )
             
-            # Build weight mapping
+            # 构建权重映射
             weights = {}
             for path in self.app.forest_graph.paths:
                 tid1, tid2 = path.tree1.tree_id, path.tree2.tree_id
                 weights[(tid1, tid2)] = weights[(tid2, tid1)] = path.weight
             
-            # Normalize weights to a larger range, increasing node spacing
+            # 将权重归一化到更大的范围，增加节点间距
             if weights:
                 weight_values = list(weights.values())
                 min_weight = min(weight_values)
                 max_weight = max(weight_values)
-                weight_range = max(max_weight - min_weight, 1)  # Avoid division by zero
-                target_min, target_max = 15, 70  # Larger target range, increase spacing
+                weight_range = max(max_weight - min_weight, 1)  # 避免除以零
+                target_min, target_max = 15, 70  # 更大的目标范围，增大间距
                 
                 for key, weight in list(weights.items()):
                     normalized = target_min + (weight - min_weight) * (target_max - target_min) / weight_range
                     weights[key] = normalized
             
-            # Build adjacency list
+            # 构建邻接表
             neighbors = defaultdict(list)
             for tid1, tid2 in weights:
                 neighbors[tid1].append(tid2)
                 neighbors[tid2].append(tid1)
             
-            # Simulate physical forces for layout
-            temperature = 100.0  # Higher initial temperature, allowing more movement
-            iterations = 400     # Increase iteration count
+            # 模拟物理力进行布局
+            temperature = 100.0  # 更高的初始温度，允许更大的移动
+            iterations = 400     # 增加迭代次数
             
             for iteration in range(iterations):
-                # Slowly decrease temperature with each iteration
-                temperature *= 0.98  # Slower cooling
+                # 每次迭代缓慢降低温度
+                temperature *= 0.98  # 降温更慢
                 
-                # Calculate net forces on each node
+                # 计算每个节点受到的合力
                 forces = {tid: [0, 0] for tid in trees}
                 
-                # 1. Spring forces based on edge weights (attraction/repulsion)
+                # 1. 基于边权重的弹簧力（吸引/排斥）
                 for tid1, tid2 in weights:
                     x1, y1 = positions[tid1]
                     x2, y2 = positions[tid2]
                     
-                    # Calculate current distance
+                    # 计算当前距离
                     dx, dy = x2 - x1, y2 - y1
-                    distance = max(np.sqrt(dx*dx + dy*dy), 0.01)  # Avoid division by zero
+                    distance = max(np.sqrt(dx*dx + dy*dy), 0.01)  # 避免除以零
                     
-                    # Calculate ideal distance based on weight
+                    # 计算基于权重的理想距离
                     ideal_distance = weights[(tid1, tid2)]
                     
-                    # Calculate attraction/repulsion force (attract if too far, repel if too close)
+                    # 计算吸引/排斥力（距离太大则吸引，太小则排斥）
                     force_factor = (distance - ideal_distance) / distance
                     
-                    # Apply force to both nodes
+                    # 添加力到两个节点
                     fx, fy = force_factor * dx, force_factor * dy
                     forces[tid1][0] += fx
                     forces[tid1][1] += fy
                     forces[tid2][0] -= fx
                     forces[tid2][1] -= fy
                 
-                # 2. Enhanced repulsion forces between all nodes (avoid overcrowding)
+                # 2. 所有节点间的增强排斥力（避免过于密集）
                 for i, tid1 in enumerate(trees):
                     for tid2 in trees[i+1:]:
-                        # Apply repulsion to all nodes for better dispersion
+                        # 对所有节点都施加排斥力，增强分散效果
                         x1, y1 = positions[tid1]
                         x2, y2 = positions[tid2]
                         
                         dx, dy = x2 - x1, y2 - y1
                         distance = max(np.sqrt(dx*dx + dy*dy), 0.01)
                         
-                        # Increase repulsion coefficient for stronger repulsion
-                        force_factor = 200.0 / (distance * distance)  # Increased coefficient
+                        # 增大排斥力系数，更强的排斥力
+                        force_factor = 200.0 / (distance * distance)  # 增大系数
                         
-                        # Apply repulsion forces to both nodes
+                        # 添加力到两个节点（相互排斥）
                         fx, fy = force_factor * dx / distance, force_factor * dy / distance
                         forces[tid1][0] -= fx
                         forces[tid1][1] -= fy
                         forces[tid2][0] += fx
                         forces[tid2][1] += fy
                 
-                # 3. Boundary forces - keep nodes within canvas but allow dispersion
+                # 3. 边界力 - 保持节点在画布内但让节点尽可能分散
                 for tid in trees:
                     x, y = positions[tid]
                     
-                    # Looser boundary control, apply force only when close to edges
+                    # 更宽松的边界控制，只在接近边缘时施加力
                     if x < 5:
                         forces[tid][0] += (5 - x) * 0.5
                     elif x > 95:
@@ -293,10 +293,10 @@ class UIActions:
                     elif y > 95:
                         forces[tid][1] -= (y - 95) * 0.5
                 
-                # 4. Distribute isolated nodes around canvas edges
+                # 4. 让孤立的节点分散在画布四周
                 isolated = [tid for tid in trees if not neighbors[tid]]
                 if isolated:
-                    # Place isolated nodes around canvas edges
+                    # 将孤立节点放置在画布四周
                     corners = [(15, 15), (85, 15), (15, 85), (85, 85)]
                     sides = [(50, 15), (85, 50), (50, 85), (15, 50)]
                     positions_list = corners + sides
@@ -305,28 +305,28 @@ class UIActions:
                         if i < len(positions_list):
                             positions[tid] = positions_list[i]
                         else:
-                            # If too many isolated nodes, distribute randomly
+                            # 如果孤立节点太多，则随机分布
                             positions[tid] = (random.uniform(10, 90), random.uniform(10, 90))
                 
-                # 5. Limit movement magnitude
+                # 5. 限制移动幅度
                 for tid in trees:
                     fx, fy = forces[tid]
-                    # Limit force magnitude
+                    # 限制力的大小
                     force_mag = np.sqrt(fx*fx + fy*fy)
                     if force_mag > temperature:
                         fx = fx * temperature / force_mag
                         fy = fy * temperature / force_mag
                     
-                    # Update positions
+                    # 更新位置
                     x, y = positions[tid]
                     new_x = max(5, min(95, x + fx))
                     new_y = max(5, min(95, y + fy))
                     positions[tid] = (new_x, new_y)
             
-            # Final processing: ensure sufficient node spacing
-            min_distance = 20  # Minimum node distance
+            # 最终处理：确保节点间距足够大
+            min_distance = 20  # 最小节点间距
             
-            for _ in range(50):  # Maximum 50 adjustment attempts
+            for _ in range(50):  # 最多尝试50次调整
                 has_overlap = False
                 for i, tid1 in enumerate(trees):
                     for tid2 in trees[i+1:]:
@@ -334,12 +334,12 @@ class UIActions:
                         x2, y2 = positions[tid2]
                         dist = np.sqrt((x2-x1)**2 + (y2-y1)**2)
                         
-                        if dist < min_distance:  # If too close, push them apart
+                        if dist < min_distance:  # 如果太近，将它们推开
                             has_overlap = True
                             angle = np.arctan2(y2 - y1, x2 - x1)
                             push_dist = (min_distance - dist) / 2
                             
-                            # Push nodes in opposite directions
+                            # 将两个节点沿相反方向推开
                             positions[tid1] = (
                                 max(5, min(95, x1 - push_dist * np.cos(angle))),
                                 max(5, min(95, y1 - push_dist * np.sin(angle)))
@@ -352,10 +352,10 @@ class UIActions:
                 if not has_overlap:
                     break
             
-            # Apply calculated positions to trees
+            # 将计算好的位置应用到树
             self.app.tree_positions = positions
             
-            # Calculate layout quality
+            # 评估布局质量
             total_error = 0
             if self.app.forest_graph.paths:
                 for path in self.app.forest_graph.paths:
@@ -363,18 +363,17 @@ class UIActions:
                     x1, y1 = positions[tid1]
                     x2, y2 = positions[tid2]
                     
-                    # Actual visual distance
+                    # 实际视觉距离
                     actual_dist = np.sqrt((x2-x1)**2 + (y2-y1)**2)
-                    # Original non-normalized weight
+                    # 原始非归一化权重
                     desired_dist = path.weight
                     
-                    # Calculate proportional error
+                    # 计算比例误差
                     error = abs(actual_dist - desired_dist) / max(desired_dist, 0.1)
                     total_error += error
                 
-                # Skip terminal output
-                # avg_error = total_error / len(self.app.forest_graph.paths)
-                # print(f"Layout average error rate: {avg_error:.2f}")
+                avg_error = total_error / len(self.app.forest_graph.paths)
+                print(f"布局平均误差率: {avg_error:.2f}")
             
             self.app.update_display()
             self.app.status_bar.set_text("✅ Data loaded successfully.")

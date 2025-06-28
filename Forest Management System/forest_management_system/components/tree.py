@@ -26,7 +26,7 @@ class Tree:
     @property
     def health_status(self):
         return self._health_status
-    
+
     @health_status.setter
     def health_status(self, status):
         self.set_health_status(status)
