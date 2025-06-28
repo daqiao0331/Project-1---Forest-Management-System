@@ -14,6 +14,9 @@ class CanvasEventsHandler:
     def on_press(self, event):
         if event.inaxes != self.canvas.ax: return
 
+        if getattr(self.app.ui_actions, 'delete_tree_mode', False):
+            self.app.ui_actions.delete_tree_at_position(event.xdata, event.ydata)
+            return
         if self.app.ui_actions.delete_path_mode:
             self.app.ui_actions.delete_path_at_position(event.xdata, event.ydata)
             return
@@ -101,4 +104,4 @@ class CanvasEventsHandler:
                 dist = np.sqrt((x - proj_x)**2 + (y - proj_y)**2)
             if dist <= threshold:
                 return path
-        return None 
+        return None

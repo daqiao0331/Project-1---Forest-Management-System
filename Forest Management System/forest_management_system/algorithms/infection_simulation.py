@@ -6,11 +6,9 @@ def simulate_infection(forest_graph, start_tree_id):
     infected = set()
     visited = set()
     infection_order = []  # (tree_id, from_id)
-    # The queue is used to store nodes to be visited next in BFS order (FIFO).
-    queue = [(start_tree_id, None)]  # Each element is (current_node, from_node)
+    queue = [(start_tree_id, None)]
     
     while queue:
-        # Pop the first element from the queue (FIFO order for BFS)
         node, from_id = queue.pop(0)
         if node in visited:
             continue
@@ -34,7 +32,6 @@ def simulate_infection(forest_graph, start_tree_id):
         neighbor_distances.sort(key=lambda x: x[1])
         
         # Add sorted neighbors to the queue.
-        # Only unvisited and not already infected neighbors are added to the queue for future BFS steps.
         for neighbor_id, _ in neighbor_distances:
             if neighbor_id not in visited and neighbor_id not in infected:
                 if forest_graph.trees[neighbor_id].health_status != HealthStatus.INFECTED:

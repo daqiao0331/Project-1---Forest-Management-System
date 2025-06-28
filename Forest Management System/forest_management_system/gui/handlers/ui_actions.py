@@ -33,31 +33,36 @@ class UIActions:
     def add_tree(self):
         dialog = AddTreeDialog(self.root)
         result = dialog.show()
-        if result is None:
-            return
-        
-        tree_id = max([t.tree_id for t in self.app.forest_graph.trees.values()], default=0) + 1
-        tree = Tree(tree_id, result["species"], result["age"], result["health"])
-        self.app.forest_graph.add_tree(tree)
-        self.app.tree_positions[tree_id] = (random.uniform(10, 90), random.uniform(10, 90))
-        self.app.update_display()
-        self.app.status_bar.set_text(f"✅ Tree {tree_id} added.")
+        if result:
+            tree_id = max([t.tree_id for t in self.app.forest_graph.trees.values()], default=0) + 1
+            tree = Tree(tree_id, result["species"], result["age"], result["health"])
+            self.app.forest_graph.add_tree(tree)
+            self.app.tree_positions[tree_id] = (random.uniform(10, 90), random.uniform(10, 90))
+            self.app.update_display()
+            self.app.status_bar.set_text(f"✅ Tree {tree_id} added.")
 
-    def delete_tree(self):
+    def start_delete_tree(self):
         if not self.app.forest_graph.trees:
             messagebox.showwarning("Warning", "No trees to delete.", parent=self.root)
             return
-        
-        tree_ids = list(self.app.forest_graph.trees.keys())
-        dialog = DeleteTreeDialog(self.root, tree_ids)
-        tree_id = dialog.show()
-        
-        if tree_id and tree_id in self.app.forest_graph.trees:
-            self.app.forest_graph.remove_tree(tree_id)
-            if tree_id in self.app.tree_positions:
-                del self.app.tree_positions[tree_id]
+        self.delete_tree_mode = True
+        self.app.status_bar.set_text("🖱️ Click a tree to delete...")
+        self.control_panel.delete_tree_btn.config(text="❌ Exit", command=self.exit_delete_tree, style='Red.TButton')
+
+    def exit_delete_tree(self):
+        self.delete_tree_mode = False
+        self.app.status_bar.set_text("Ready")
+        self.control_panel.delete_tree_btn.config(text="🌳 Delete Tree", command=self.start_delete_tree, style='Modern.TButton')
+        self.app.update_display()
+
+    def delete_tree_at_position(self, x, y):
+        tree = self.app.canvas_handler._find_tree_at_position(x, y)
+        if tree:
+            self.app.forest_graph.remove_tree(tree.tree_id)
+            if tree.tree_id in self.app.tree_positions:
+                del self.app.tree_positions[tree.tree_id]
             self.app.update_display()
-            self.app.status_bar.set_text(f"✅ Tree {tree_id} deleted.")
+            self.app.status_bar.set_text(f"✅ Tree {tree.tree_id} deleted.")
 
     def modify_health(self):
         if not self.app.forest_graph.trees:
@@ -82,7 +87,7 @@ class UIActions:
             return
         self.add_path_mode = True
         self.canvas.path_start = None
-        self.app.status_bar.set_text("🖱️ Click first tree...")
+        self.app.status_bar.set_text("🖱️ Click the first tree...")
         self.control_panel.add_path_btn.config(text="❌ Exit", command=self.exit_add_path, style='Red.TButton')
     
     def exit_add_path(self):
@@ -98,7 +103,7 @@ class UIActions:
 
         if self.canvas.path_start is None:
             self.canvas.path_start = clicked_tree
-            self.app.status_bar.set_text(f"🖱️ Tree {clicked_tree.tree_id} selected. Click second tree.")
+            self.app.status_bar.set_text(f"🖱️ Tree {clicked_tree.tree_id} selected. Click the second tree.")
         else:
             if self.canvas.path_start != clicked_tree:
                 pos1 = self.app.tree_positions[self.canvas.path_start.tree_id]
@@ -136,28 +141,19 @@ class UIActions:
             messagebox.showwarning("Warning", "At least 2 trees are needed.", parent=self.root)
             return
         dialog = ShortestPathDialog(self.root, list(self.app.forest_graph.trees.keys()))
-        try:
-            result = dialog.show()
-            if result:
-                start_id, end_id = result
-                path, dist = find_shortest_path(self.app.forest_graph, start_id, end_id)
-                if dist == float('inf'):
-                    self.canvas._shortest_path_highlight = []
-                    self.app.update_display()
-                    messagebox.showinfo("No Path", "No path found between the selected trees.", parent=self.root)
-                else:
-                    self.canvas._shortest_path_highlight = path
-                    self.app.update_display()
-                    messagebox.showinfo("Path Found", f"Path: {path}\nDistance: {dist:.2f}", parent=self.root)
-                self.app.status_bar.set_text(f"🔵 Shortest Path: {dist:.2f}")
-            else:
-                # User cancelled, clear highlight
+        result = dialog.show()
+        if result:
+            start_id, end_id = result
+            path, dist = find_shortest_path(self.app.forest_graph, start_id, end_id)
+            if dist == float('inf'):
                 self.canvas._shortest_path_highlight = []
                 self.app.update_display()
-        finally:
-            # Always clear highlight after dialog closes
-            self.canvas._shortest_path_highlight = []
-            self.app.update_display()
+                messagebox.showinfo("No Path", "No path found between the selected trees.", parent=self.root)
+            else:
+                self.canvas._shortest_path_highlight = path
+                self.app.update_display()
+                messagebox.showinfo("Path Found", f"Path: {path}\nDistance: {dist:.2f}", parent=self.root)
+            self.app.status_bar.set_text(f"🔵 Shortest Path: {dist:.2f}")
 
     # Data Actions
     def load_data(self):
@@ -172,7 +168,7 @@ class UIActions:
             for tree_id in self.app.forest_graph.trees:
                 self.app.tree_positions[tree_id] = (random.uniform(10, 90), random.uniform(10, 90))
             self.app.update_display()
-            self.app.status_bar.set_text("✅ Data loaded successfully")
+            self.app.status_bar.set_text("✅ Data loaded successfully.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load data: {e}", parent=self.root)
 
@@ -186,8 +182,7 @@ class UIActions:
             tree_file_path = filedialog.asksaveasfilename(
                 defaultextension=".csv",
                 filetypes=[("CSV files", "*.csv")],
-                title="Save Trees Data As...",
-                initialfile="trees.csv"
+                title="Save Trees Data As..."
             )
             if not tree_file_path:
                 self.app.status_bar.set_text("⚠️ Save cancelled.")
@@ -197,8 +192,7 @@ class UIActions:
             path_file_path = filedialog.asksaveasfilename(
                 defaultextension=".csv",
                 filetypes=[("CSV files", "*.csv")],
-                title="Save Paths Data As...",
-                initialfile="paths.csv"
+                title="Save Paths Data As..."
             )
             if not path_file_path:
                 self.app.status_bar.set_text("⚠️ Save cancelled.")
@@ -260,14 +254,15 @@ class UIActions:
             self._animate_infection(tree.tree_id)
         else:
             self.app.status_bar.set_text("⚠️ Please click an INFECTED tree.")
+            messagebox.showwarning("Warning", "Please click an INFECTED tree to start simulation.", parent=self.root)
             
     def _animate_infection(self, start_tree_id):
-        """ Simulate and animate the infection spread starting from a given tree ID."""
+        """Animate BFS infection spread, highlight nodes and edges, mark infected nodes."""
         from ...algorithms.infection_simulation import simulate_infection
         import time
         infection_order = simulate_infection(self.app.forest_graph, start_tree_id)
         if not infection_order:
-            self.app.status_bar.set_text("⚠️ failed")
+            self.app.status_bar.set_text("⚠️ Infection simulation failed.")
             return
         highlight_nodes = set()
         highlight_edges = set()
@@ -276,25 +271,26 @@ class UIActions:
             highlight_nodes.add(tid)
             if from_id is not None:
                 highlight_edges.add((from_id, tid))
+            # Canvas highlight: pass highlighted nodes and edges
             self.canvas._infection_highlight = set(highlight_nodes)
             self.canvas._infection_edge_highlight = set(highlight_edges)
             self.canvas._infection_labels = {tid: ("🦠" if idx==0 else "⚡") for tid, _ in infection_order[:idx+1]}
             self.app.update_display()
             self.app.root.update()
             time.sleep(0.3)
-        self.app.status_bar.set_text(f"🦠 Infection simulation complete, infected trees: {len(infection_order)}")
+        self.app.status_bar.set_text(f"🦠 Infection simulation finished, infected trees: {len(infection_order)}")
         self.canvas._infection_highlight = set()
         self.canvas._infection_edge_highlight = set()
         self.canvas._infection_labels = {}
         self.app.update_display()
 
     def analyze_forest(self):
-        """Analyze the forest data and visualize it, including the largest conservation area (reserve)."""
-        plt.rcParams['font.sans-serif'] = ['SimHei']  # for Chinese label display
-        plt.rcParams['axes.unicode_minus'] = False  # for negative sign display
+        """Statistics and visualization of forest data."""
+        plt.rcParams['font.sans-serif'] = ['Arial']  # Use Arial for English labels
+        plt.rcParams['axes.unicode_minus'] = False  # Show minus sign correctly
 
         if not self.app.forest_graph.trees:
-            messagebox.showinfo("data analysis", "The forest has no trees.", parent=self.root)
+            messagebox.showinfo("Data Analysis", "There are no trees in the current forest.", parent=self.root)
             return
         health_counts = Counter(t.health_status.name for t in self.app.forest_graph.trees.values())
         species_counts = Counter(t.species for t in self.app.forest_graph.trees.values())
@@ -306,54 +302,23 @@ class UIActions:
         reserve_count = len(reserves)
         max_reserve = max((len(r) for r in reserves), default=0)
         most_common_species, most_common_count = ('N/A', 0) if not species_counts else species_counts.most_common(1)[0]
-        # Find the largest reserve
-        largest = max(reserves, key=len) if reserves else []
-        largest_ids = sorted(largest) if largest else []
-        # plot
-        fig, axs = plt.subplots(1, 4, figsize=(22, 4))
+        # Plot
+        fig, axs = plt.subplots(1, 3, figsize=(15, 4))
         color_map = {'HEALTHY': '#2ecc71', 'INFECTED': '#e74c3c', 'AT_RISK': '#f39c12'}
         pie_colors = [color_map.get(k, '#95a5a6') for k in health_counts.keys()]
         axs[0].pie(health_counts.values(), labels=health_counts.keys(), autopct='%1.1f%%', colors=pie_colors)
-        axs[0].set_title('health status distribution')
+        axs[0].set_title('Health Status Distribution')
         axs[1].bar(species_counts.keys(), species_counts.values(), color='#3498db')
-        axs[1].set_title('species distribution')
-        axs[1].set_ylabel('count')
+        axs[1].set_title('Species Distribution')
+        axs[1].set_ylabel('Count')
         axs[1].tick_params(axis='x', rotation=30)
         axs[2].axis('off')
-        summary = (f"Infection Rate: {infected_percent:.1f}%\n"
-                   f"Reserve Count: {reserve_count}\n"
-                   f"Max Reserve Size: {max_reserve}\n"
-                   f"Most Common Species: {most_common_species} ({most_common_count})\n"
-                   f"Largest Reserve Members: {', '.join(map(str, largest_ids)) if largest_ids else 'N/A'}")
+        summary = (f"Infection rate: {infected_percent:.1f}%\n"
+                   f"Number of reserves: {reserve_count}\n"
+                   f"Largest reserve size: {max_reserve}\n"
+                   f"Most common species: {most_common_species} ({most_common_count})")
         axs[2].text(0.1, 0.5, summary, fontsize=13, va='center', ha='left', wrap=True)
-        # Largest reserve visualization
-        axs[3].set_title('Largest Conservation Area')
-        axs[3].set_xlabel('X')
-        axs[3].set_ylabel('Y')
-        if largest and len(largest) > 0:
-            xs = [self.app.tree_positions[tid][0] for tid in largest if tid in self.app.tree_positions]
-            ys = [self.app.tree_positions[tid][1] for tid in largest if tid in self.app.tree_positions]
-            all_xs = [pos[0] for pos in self.app.tree_positions.values()]
-            all_ys = [pos[1] for pos in self.app.tree_positions.values()]
-            axs[3].scatter(all_xs, all_ys, c='#bdc3c7', s=30, alpha=0.5, label='Other Trees')
-            axs[3].scatter(xs, ys, c='#27ae60', s=60, label='Reserve Member', zorder=3, edgecolors='k')
-            if xs and ys:
-                import numpy as np
-                from matplotlib.patches import Circle
-                center_x = np.mean(xs)
-                center_y = np.mean(ys)
-                max_r = max(np.sqrt((np.array(xs)-center_x)**2 + (np.array(ys)-center_y)**2)) if len(xs)>1 else 10
-                circle = Circle((center_x, center_y), max_r+8, color='#27ae60', alpha=0.12, zorder=2)
-                axs[3].add_patch(circle)
-            for i, tid in enumerate(largest_ids):
-                if tid in self.app.tree_positions:
-                    axs[3].text(self.app.tree_positions[tid][0], self.app.tree_positions[tid][1], str(tid), fontsize=10, ha='center', va='center', color='#145a32', zorder=4)
-            axs[3].legend()
-        else:
-            axs[3].text(0.5, 0.5, 'No conservation area', fontsize=12, ha='center', va='center')
-            axs[3].set_xticks([])
-            axs[3].set_yticks([])
         plt.tight_layout()
         plt.show()
         plt.close(fig)
-        self.app.status_bar.set_text("📊 Forest analysis has been displayed.")
+        self.app.status_bar.set_text("📊 Forest analysis displayed.")

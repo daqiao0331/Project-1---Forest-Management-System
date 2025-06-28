@@ -71,7 +71,7 @@ class ControlPanel:
     def connect_actions(self, actions):
         """Connect button commands to the UI actions handler."""
         self.add_tree_btn.config(command=actions.add_tree)
-        self.delete_tree_btn.config(command=actions.delete_tree)
+        self.delete_tree_btn.config(command=actions.start_delete_tree)
         self.modify_health_btn.config(command=actions.modify_health)
         
         self.add_path_btn.config(command=actions.start_add_path)
@@ -82,4 +82,4 @@ class ControlPanel:
         self.save_data_btn.config(command=actions.save_data)
         self.clear_data_btn.config(command=actions.clear_data)
         self.infection_sim_btn.config(command=actions.enter_infection_sim_mode)
-        self.analyze_forest_btn.config(command=actions.analyze_forest) 
+        self.analyze_forest_btn.config(command=actions.analyze_forest)
