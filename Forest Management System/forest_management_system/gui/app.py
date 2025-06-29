@@ -19,11 +19,11 @@ from .dialogs.data_dialog import LoadDataDialog
 from .handlers.canvas_events import CanvasEventsHandler
 from .handlers.ui_actions import UIActions
 
-from forest_management_system.components.forest_graph import ForestGraph
-from forest_management_system.components.tree import Tree
-from forest_management_system.components.path import Path
-from forest_management_system.components.health_status import HealthStatus
-from forest_management_system.components.dataset_loader import load_forest_from_files
+from forest_management_system.data_structures.forest_graph import ForestGraph
+from forest_management_system.data_structures.tree import Tree
+from forest_management_system.data_structures.path import Path
+from forest_management_system.data_structures.health_status import HealthStatus
+from forest_management_system.io.dataset_loader import load_forest_from_files
 from forest_management_system.algorithms.pathfinding import find_shortest_path
 from forest_management_system.algorithms.reserve_detection import find_reserves
 

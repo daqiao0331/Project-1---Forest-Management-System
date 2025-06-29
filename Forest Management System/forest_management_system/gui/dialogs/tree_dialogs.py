@@ -3,7 +3,7 @@ Dialog windows for tree-related operations.
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
-from ...components.health_status import HealthStatus
+from ...data_structures.health_status import HealthStatus
 
 class AddTreeDialog:
     def __init__(self, parent):
@@ -79,14 +79,25 @@ class AddTreeDialog:
 
     def _on_ok(self):
         try:
+            health_status_name = self.health_var.get()
+            # Use enum values directly instead of string representation
+            if health_status_name == "HEALTHY":
+                health_status = HealthStatus.HEALTHY
+            elif health_status_name == "INFECTED":
+                health_status = HealthStatus.INFECTED
+            elif health_status_name == "AT_RISK":
+                health_status = HealthStatus.AT_RISK
+            else:
+                raise KeyError(f"Invalid health status: {health_status_name}")
+                
             self.result = {
                 "species": self.species_var.get(),
                 "age": int(self.age_var.get()),
-                "health": HealthStatus[self.health_var.get()]
+                "health": health_status
             }
             self.dialog.destroy()
-        except (ValueError, KeyError):
-            messagebox.showerror("Invalid Input", "Please check your inputs.", parent=self.dialog)
+        except (ValueError, KeyError) as e:
+            messagebox.showerror("Invalid Input", f"Please check your inputs: {str(e)}", parent=self.dialog)
 
     def show(self):
         self.dialog.wait_window()
@@ -246,14 +257,25 @@ class ModifyHealthDialog:
         if self.tree_var.get():
             try:
                 tree_id = int(self.tree_var.get())
-                health = HealthStatus[self.health_var.get()]
+                
+                health_status_name = self.health_var.get()
+                # Use enum values directly instead of string representation
+                if health_status_name == "HEALTHY":
+                    health_status = HealthStatus.HEALTHY
+                elif health_status_name == "INFECTED":
+                    health_status = HealthStatus.INFECTED
+                elif health_status_name == "AT_RISK":
+                    health_status = HealthStatus.AT_RISK
+                else:
+                    raise KeyError(f"Invalid health status: {health_status_name}")
+                
                 self.result = {
                     "tree_id": tree_id,
-                    "health": health
+                    "health": health_status
                 }
                 self.dialog.destroy()
-            except (ValueError, KeyError):
-                messagebox.showerror("Error", "Invalid input values.", parent=self.dialog)
+            except (ValueError, KeyError) as e:
+                messagebox.showerror("Error", f"Invalid input values: {str(e)}", parent=self.dialog)
         else:
             messagebox.showerror("Error", "Please select a tree.", parent=self.dialog)
 

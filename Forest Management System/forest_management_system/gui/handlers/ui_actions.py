@@ -13,10 +13,10 @@ from sklearn.manifold import MDS
 import scipy.optimize
 import tkinter as tk
 
-from ...components.tree import Tree
-from ...components.path import Path
-from ...components.health_status import HealthStatus
-from ...components.dataset_loader import load_forest_from_files
+from ...data_structures.tree import Tree
+from ...data_structures.path import Path
+from ...data_structures.health_status import HealthStatus
+from ...io.dataset_loader import load_forest_from_files
 from ...algorithms.pathfinding import find_shortest_path
 from ..dialogs.tree_dialogs import AddTreeDialog, DeleteTreeDialog, ModifyHealthDialog
 from ..dialogs.path_dialogs import ShortestPathDialog
@@ -56,7 +56,7 @@ class UIActions:
     def exit_delete_tree(self):
         self.delete_tree_mode = False
         self.app.status_bar.set_text("Ready")
-        self.control_panel.delete_tree_btn.config(text="🌳 Delete Tree", command=self.start_delete_tree, style='Modern.TButton')
+        self.control_panel.delete_tree_btn.config(text="✖ Delete Tree", command=self.start_delete_tree, style='Modern.TButton')
         self.app.update_display()
 
     def delete_tree_at_position(self, x, y):
@@ -133,6 +133,11 @@ class UIActions:
         self.delete_path_mode = False
         self.app.status_bar.set_text("Ready")
         self.control_panel.delete_path_btn.config(text="✂️ Delete Path", command=self.start_delete_path, style='Modern.TButton')
+        
+    def _clear_path_highlight(self):
+        """Clear the shortest path highlight and update the display."""
+        self.canvas._shortest_path_highlight = []
+        self.app.update_display()
 
     def delete_path_at_position(self, x, y):
         path_to_delete = self.app.canvas_handler.find_path_at_position(x, y)
@@ -141,33 +146,43 @@ class UIActions:
             self.app.update_display()
             self.app.status_bar.set_text(f"✅ Path deleted.")
 
-    def clear_shortest_path(self):
-        """Clear the shortest path highlight from the canvas and reset status bar."""
-        self.canvas._shortest_path_highlight = []
-        self.app.update_display()
-        self.app.status_bar.set_text("🔵 Shortest path highlight cleared.")
-
     def find_shortest_path(self):
         if len(self.app.forest_graph.trees) < 2:
             messagebox.showwarning("Warning", "At least 2 trees are needed.", parent=self.root)
             return
+        
         dialog = ShortestPathDialog(self.root, list(self.app.forest_graph.trees.keys()))
         result = dialog.show()
+        
         if result:
             start_id, end_id = result
             path, dist = find_shortest_path(self.app.forest_graph, start_id, end_id)
+            
             if dist == float('inf'):
                 self.canvas._shortest_path_highlight = []
                 self.app.update_display()
                 messagebox.showinfo("No Path", "No path found between the selected trees.", parent=self.root)
+                self.app.status_bar.set_text("❌ No path found")
             else:
+                # Highlight the path in the canvas
                 self.canvas._shortest_path_highlight = path
                 self.app.update_display()
-                messagebox.showinfo("Path Found", f"Path: {path}\nDistance: {dist:.2f}", parent=self.root)
-            self.app.status_bar.set_text(f"🔵 Shortest Path: {dist:.2f}")
-
-            self.canvas._shortest_path_highlight = []
-            self.app.update_display()
+                
+                # Show path information in status bar and in a popup
+                path_str = " → ".join(map(str, path))
+                self.app.status_bar.set_text(f"🔵 Shortest path: {path_str} (Distance: {dist:.2f})")
+                
+                # Display the path in a popup - when this closes, the path highlight will be cleared
+                try:
+                    # Create info dialog and clear path highlight when closed
+                    result = messagebox.showinfo("Path Found", 
+                                            f"Shortest Path: {path_str}\nDistance: {dist:.2f}", 
+                                            parent=self.root)
+                    # Clear highlight immediately after dialog is closed
+                    self._clear_path_highlight()
+                except Exception:
+                    # Also clear highlight if exception occurs
+                    self._clear_path_highlight()
 
     # Data Actions
     def load_data(self):
@@ -514,28 +529,79 @@ class UIActions:
             messagebox.showwarning("Warning", "Please click an INFECTED tree to start simulation.", parent=self.root)
             
     def _animate_infection(self, start_tree_id):
-        """Animate BFS infection spread, highlight nodes and edges, mark infected nodes."""
+        """
+        Animate infection spread with time proportional to distance.
+        The animation speed is slower for longer distances.
+        """
         from ...algorithms.infection_simulation import simulate_infection
         import time
+        
+        # Get infection order with timing information
         infection_order = simulate_infection(self.app.forest_graph, start_tree_id)
         if not infection_order:
             self.app.status_bar.set_text("⚠️ Infection simulation failed.")
             return
+        
+        # Sort by infection time
+        infection_order.sort(key=lambda x: x[2])  # Sort by days_to_infect
+        
+        # Extract timing information
+        max_days = infection_order[-1][2] if len(infection_order) > 0 else 0
+        base_delay = 0.1  # Base animation delay
+        
         highlight_nodes = set()
         highlight_edges = set()
-        for idx, (tid, from_id) in enumerate(infection_order):
+        infection_days = {}  # To track when (in days) each tree gets infected
+        
+        # First tree gets infected immediately
+        highlight_nodes.add(start_tree_id)
+        self.app.forest_graph.trees[start_tree_id].health_status = HealthStatus.INFECTED
+        self.canvas._infection_highlight = set(highlight_nodes)
+        self.canvas._infection_labels = {start_tree_id: "🦠"}
+        self.app.update_display()
+        self.app.root.update()
+        time.sleep(base_delay)
+        
+        # Now infect the rest, proportional to distance
+        prev_days = 0
+        for idx, (tid, from_id, days) in enumerate(infection_order):
+            if idx == 0:  # Skip the first tree (start tree)
+                infection_days[tid] = 0
+                continue
+            
+            # Wait proportional to the difference in infection days
+            days_diff = days - prev_days
+            wait_time = base_delay + (days_diff / max_days) * 1.5  # Scale for better visualization
+            time.sleep(wait_time)
+            prev_days = days
+            
+            # Infect the tree
             self.app.forest_graph.trees[tid].health_status = HealthStatus.INFECTED
             highlight_nodes.add(tid)
+            infection_days[tid] = days
+            
+            # Add the edge that transmitted the infection
             if from_id is not None:
                 highlight_edges.add((from_id, tid))
-            # Canvas highlight: pass highlighted nodes and edges
+            
+            # Update the visualization
             self.canvas._infection_highlight = set(highlight_nodes)
             self.canvas._infection_edge_highlight = set(highlight_edges)
-            self.canvas._infection_labels = {tid: ("🦠" if idx==0 else "⚡") for tid, _ in infection_order[:idx+1]}
+            
+            # Label trees with infection symbol and days
+            self.canvas._infection_labels = {
+                t: ("🦠" if t == start_tree_id else f"⚡{infection_days[t]:.1f} days") 
+                for t in highlight_nodes
+            }
+            
             self.app.update_display()
             self.app.root.update()
-            time.sleep(0.3)
-        self.app.status_bar.set_text(f"🦠 Infection simulation finished, infected trees: {len(infection_order)}")
+        
+        # Show simulation summary
+        self.app.status_bar.set_text(f"🦠 Infection simulation finished, infected trees: {len(infection_order)}, spread time: {max_days:.1f} days")
+        
+        # Wait a bit before clearing the visualization
+        time.sleep(2)
         self.canvas._infection_highlight = set()
         self.canvas._infection_edge_highlight = set()
         self.canvas._infection_labels = {}

@@ -63,7 +63,7 @@ class ForestCanvas:
 
     def draw_forest(self, forest_graph, tree_positions):
         """Draws the entire forest, including trees, paths, and reserves."""
-        from forest_management_system.components.health_status import HealthStatus
+        from forest_management_system.data_structures.health_status import HealthStatus
         from forest_management_system.algorithms.reserve_detection import find_reserves
 
         self.ax.clear()

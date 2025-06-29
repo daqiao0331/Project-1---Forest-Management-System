@@ -2,7 +2,7 @@
 Handles all mouse events on the ForestCanvas.
 """
 import numpy as np
-from ...components.path import Path
+from ...data_structures.path import Path
 
 class CanvasEventsHandler:
     def __init__(self, app_logic):

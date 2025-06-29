@@ -27,6 +27,10 @@ class ControlPanel:
         sidebar_canvas.pack(side="left", fill="both", expand=True)
         sidebar_scrollbar.pack(side="right", fill="y")
         
+        # Create a frame for dynamic action buttons
+        self.actions_frame = ttk.LabelFrame(self.scrollable_frame, text="🔄 Dynamic Actions", 
+                                   style='Modern.TLabelframe', padding=15)
+        
         self._create_button_sections()
 
     def _create_button_sections(self):
@@ -37,7 +41,7 @@ class ControlPanel:
         tree_frame.pack(fill=tk.X, pady=(0, 15), padx=5)
         self.add_tree_btn = ModernButton(tree_frame, text="➕  Add Tree")
         self.add_tree_btn.pack(fill=tk.X, pady=3)
-        self.delete_tree_btn = ModernButton(tree_frame, text="❌  Delete Tree")
+        self.delete_tree_btn = ModernButton(tree_frame, text="✖  Delete Tree")
         self.delete_tree_btn.pack(fill=tk.X, pady=3)
         self.modify_health_btn = ModernButton(tree_frame, text="🔧  Modify Health")
         self.modify_health_btn.pack(fill=tk.X, pady=3)
@@ -70,6 +74,9 @@ class ControlPanel:
         self.infection_sim_btn.pack(fill=tk.X, pady=3)
         self.analyze_forest_btn = ModernButton(data_frame, text="📊  Analyze Forest")
         self.analyze_forest_btn.pack(fill=tk.X, pady=3)
+        
+        # Pack the dynamic actions frame last so it appears at the bottom
+        self.actions_frame.pack(fill=tk.X, pady=(0, 15), padx=5)
 
     def connect_actions(self, actions):
         """Connect button commands to the UI actions handler."""

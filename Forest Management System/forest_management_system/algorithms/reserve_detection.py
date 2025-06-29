@@ -1,4 +1,4 @@
-from forest_management_system.components.health_status import HealthStatus
+from forest_management_system.data_structures.health_status import HealthStatus
 '''
 Find reserves: only groups of 3 or more healthy trees that form a complete (fully connected) subgraph (clique),
 and none of them are directly connected to any infected or at-risk tree.

@@ -1,47 +1,76 @@
+import heapq
+
 def find_shortest_path(forest_graph, start_tree_id, end_tree_id):
     """
-    Finds the shortest path between two trees using Dijkstra's algorithm.
+    Finds the shortest path between two trees using an optimized Dijkstra's algorithm
+    with priority queue.
+    
+    Args:
+        forest_graph: The forest graph
+        start_tree_id: The ID of the starting tree
+        end_tree_id: The ID of the destination tree
+        
+    Returns:
+        Tuple of (path, distance) where:
+            - path is a list of tree IDs representing the shortest path from start to end
+            - distance is the total distance of the path
     """
+    if start_tree_id not in forest_graph.trees or end_tree_id not in forest_graph.trees:
+        return [], float('inf')
+    
+    if start_tree_id == end_tree_id:
+        return [start_tree_id], 0
+    
+    # Initialize distances with infinity for all nodes except start
     dist = {tid: float('inf') for tid in forest_graph.trees}
-    prev = {tid: None for tid in forest_graph.trees}
     dist[start_tree_id] = 0
+    
+    # Keep track of previous node in path
+    prev = {tid: None for tid in forest_graph.trees}
+    
+    # Priority queue with (distance, node_id)
+    pq = [(0, start_tree_id)]
     visited = set()
-    n = len(forest_graph.trees)
-    for _ in range(n):
-        # Find the unvisited node with the smallest distance
-        u = None
-        min_dist = float('inf')
-        for tid in forest_graph.trees:
-            if tid not in visited and dist[tid] < min_dist:
-                min_dist = dist[tid]
-                u = tid
-        if u is None:
-            break  # The rest are unreachable
-        visited.add(u)
-        if u == end_tree_id:
+    
+    while pq:
+        # Get the node with the smallest distance
+        current_dist, current_id = heapq.heappop(pq)
+        
+        # If we've already processed this node, skip it
+        if current_id in visited:
+            continue
+            
+        # Mark as visited
+        visited.add(current_id)
+        
+        # If we've reached the destination, we're done
+        if current_id == end_tree_id:
             break
-        # Update distances for all neighbors
-        for path in forest_graph.paths:
-            if path.tree1.tree_id == u:
-                v = path.tree2.tree_id
-            elif path.tree2.tree_id == u:
-                v = path.tree1.tree_id
-            else:
+            
+        # Check all neighbors of the current node
+        for neighbor_id in forest_graph.get_neighbors(current_id):
+            if neighbor_id in visited:
                 continue
-            if v in visited:
-                continue
-            alt = dist[u] + path.weight
-            if alt < dist[v]:
-                dist[v] = alt
-                prev[v] = u
+                
+            # Calculate distance through current node
+            edge_weight = forest_graph.get_distance(current_id, neighbor_id)
+            new_dist = dist[current_id] + edge_weight
+            
+            # If this path is shorter than what we currently have
+            if new_dist < dist[neighbor_id]:
+                dist[neighbor_id] = new_dist
+                prev[neighbor_id] = current_id
+                heapq.heappush(pq, (new_dist, neighbor_id))
+    
     # Reconstruct the path
     path = []
-    u = end_tree_id
-    if prev[u] is not None or u == start_tree_id:
-        while u is not None:
-            path.insert(0, u)
-            u = prev[u]
-    if path and path[0] == start_tree_id:
+    current = end_tree_id
+    
+    # Check if end is reachable
+    if prev[current] is not None or current == start_tree_id:
+        while current is not None:
+            path.insert(0, current)
+            current = prev[current]
         return path, dist[end_tree_id]
     else:
         return [], float('inf')
