@@ -11,7 +11,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from forest_management_system.gui.app import AppLogic
 
 def main():
-    """Initializes and runs the application."""
     root = tk.Tk()
     app = AppLogic(root)
     app.run()
