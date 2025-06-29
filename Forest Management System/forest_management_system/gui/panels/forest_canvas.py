@@ -4,7 +4,7 @@ The forest visualization canvas panel.
 import tkinter as tk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.patches import Circle
+from matplotlib.patches import Circle, Rectangle
 import numpy as np
 from matplotlib.figure import Figure
 
@@ -15,20 +15,86 @@ class ForestCanvas:
         self.frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(20, 0))  # Increase left padding for more canvas space
  
         self.legend_frame = tk.Frame(self.frame, bg='#ffffff')
-        self.legend_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(5, 30), pady=(350, 30))  # Reduce right margin for more canvas space
-        legend_title = tk.Label(self.legend_frame, text="Tree Status Legend", font=('Segoe UI', 23, 'bold'), fg='#2c3e50', bg='#ffffff')
+        self.legend_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(5, 30), pady=(150, 30))  # Adjust padding for better positioning
+        legend_title = tk.Label(self.legend_frame, text="Legend", font=('Segoe UI', 23, 'bold'), fg='#2c3e50', bg='#ffffff')
         legend_title.pack(pady=(0, 15))
 
-        # Add legend item
-        def add_legend_item(emoji, text, color):
-            row = tk.Frame(self.legend_frame, bg='#ffffff')
-            row.pack(pady=10)  
-            tk.Label(row, text=emoji, font=('Segoe UI', 30), fg=color, bg='#ffffff').pack(side=tk.LEFT)
-            tk.Label(row, text=text, font=('Segoe UI', 20), fg='#2c3e50', bg='#ffffff', padx=10).pack(side=tk.LEFT)
+        # Tree status legend section
+        tree_section = tk.Frame(self.legend_frame, bg='#ffffff')
+        tree_section.pack(fill=tk.X, pady=(0, 20))
+        
+        tree_title = tk.Label(tree_section, text="Tree Status", font=('Segoe UI', 16, 'bold'), fg='#2c3e50', bg='#ffffff')
+        tree_title.pack(anchor=tk.W, pady=(0, 10))
 
-        add_legend_item("🌲", "Healthy", "#2ecc71")
-        add_legend_item("🌴", "At Risk", "#f39c12")
-        add_legend_item("🌳", "Infected", "#e74c3c")
+        # Add legend item
+        def add_legend_item(parent, emoji, text, color):
+            row = tk.Frame(parent, bg='#ffffff')
+            row.pack(pady=5, fill=tk.X)  
+            tk.Label(row, text=emoji, font=('Segoe UI', 24), fg=color, bg='#ffffff').pack(side=tk.LEFT)
+            tk.Label(row, text=text, font=('Segoe UI', 14), fg='#2c3e50', bg='#ffffff', padx=10).pack(side=tk.LEFT)
+
+        add_legend_item(tree_section, "🌲", "Healthy(GREEN)", "#2ecc71")
+        add_legend_item(tree_section, "🌴", "At Risk(YELLOW)", "#f39c12")
+        add_legend_item(tree_section, "🌳", "Infected(RED)", "#e74c3c")
+        
+        # Path colors legend section
+        path_section = tk.Frame(self.legend_frame, bg='#ffffff')
+        path_section.pack(fill=tk.X, pady=(0, 20))
+        
+        path_title = tk.Label(path_section, text="Path Colors", font=('Segoe UI', 16, 'bold'), fg='#2c3e50', bg='#ffffff')
+        path_title.pack(anchor=tk.W, pady=(0, 10))
+        
+        def add_path_legend(parent, color, thickness, text):
+            row = tk.Frame(parent, bg='#ffffff')
+            row.pack(pady=5, fill=tk.X)
+            
+            # Create a small canvas for the line
+            line_canvas = tk.Canvas(row, width=30, height=20, bg='#ffffff', highlightthickness=0)
+            line_canvas.create_line(5, 10, 25, 10, fill=color, width=thickness)
+            line_canvas.pack(side=tk.LEFT)
+            
+            tk.Label(row, text=text, font=('Segoe UI', 14), fg='#2c3e50', bg='#ffffff', padx=10).pack(side=tk.LEFT)
+        
+        add_path_legend(path_section, "#95a5a6", 2, "Normal Path")
+        add_path_legend(path_section, "#2980b9", 4, "Shortest Path")
+        add_path_legend(path_section, "#e74c3c", 5, "Infection Path")
+        
+        # Areas legend section
+        area_section = tk.Frame(self.legend_frame, bg='#ffffff')
+        area_section.pack(fill=tk.X, pady=(0, 20))
+        
+        area_title = tk.Label(area_section, text="Areas", font=('Segoe UI', 16, 'bold'), fg='#2c3e50', bg='#ffffff')
+        area_title.pack(anchor=tk.W, pady=(0, 10))
+        
+        def add_area_legend(parent, color, alpha, text):
+            row = tk.Frame(parent, bg='#ffffff')
+            row.pack(pady=5, fill=tk.X)
+            
+            # Create a small canvas for the area
+            area_canvas = tk.Canvas(row, width=30, height=20, bg='#ffffff', highlightthickness=0)
+            r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+            rgb = f'#{r:02x}{g:02x}{b:02x}'
+            area_canvas.create_rectangle(5, 5, 25, 15, fill=rgb, outline="", width=0)
+            area_canvas.pack(side=tk.LEFT)
+            
+            tk.Label(row, text=text, font=('Segoe UI', 14), fg='#2c3e50', bg='#ffffff', padx=10).pack(side=tk.LEFT)
+        
+        add_area_legend(area_section, "#7ed6df", 0.18, "Forest Reserve")
+        
+        # Numbers legend section
+        number_section = tk.Frame(self.legend_frame, bg='#ffffff')
+        number_section.pack(fill=tk.X)
+        
+        number_title = tk.Label(number_section, text="Numbers", font=('Segoe UI', 16, 'bold'), fg='#2c3e50', bg='#ffffff')
+        number_title.pack(anchor=tk.W, pady=(0, 10))
+        
+        number_row = tk.Frame(number_section, bg='#ffffff')
+        number_row.pack(pady=5, fill=tk.X)
+        
+        tk.Label(number_row, text="10.5", font=('Segoe UI', 14), fg='#2c3e50', bg='#ffffff', 
+                 padx=5, relief=tk.SOLID, borderwidth=1).pack(side=tk.LEFT)
+        tk.Label(number_row, text="Distance between trees", font=('Segoe UI', 14), 
+                 fg='#2c3e50', bg='#ffffff', padx=10).pack(side=tk.LEFT)
         
         viz_title = tk.Label(self.frame, text="🌲 Forest Visualization", 
                              font=('Segoe UI', 14, 'bold'),
@@ -82,6 +148,11 @@ class ForestCanvas:
                 center_x, center_y = sum(xs) / len(xs), sum(ys) / len(ys)
                 radius = max(np.sqrt((x - center_x)**2 + (y - center_y)**2) for x, y in positions) + 18
                 self.ax.add_patch(Circle((center_x, center_y), radius, color='#7ed6df', alpha=0.18, zorder=0))
+                
+                # Add reserve label
+                self.ax.text(center_x, center_y - radius - 5, f"Reserve ({len(reserve)} trees)", 
+                             ha='center', va='bottom', fontsize=10, color='#2c3e50',
+                             bbox=dict(boxstyle='round,pad=0.2', fc='white', alpha=0.7, ec='#7ed6df'))
         
         # Get all path weights for comparison and drawing
         path_weights = [path.weight for path in forest_graph.paths]

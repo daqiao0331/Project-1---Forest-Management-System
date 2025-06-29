@@ -68,7 +68,7 @@ class ControlPanel:
         self.restore_original_btn = ttk.Button(data_frame, text="🔄  Restore Original Data", style='Blue.TButton')
         self.restore_original_btn.pack(fill=tk.X, pady=3)
         self.restore_original_btn.config(state=tk.DISABLED)  # Initially disabled
-        self.clear_data_btn = ModernButton(data_frame, text="❌  Clear Data")
+        self.clear_data_btn = ModernButton(data_frame, text="✖  Clear Data")
         self.clear_data_btn.pack(fill=tk.X, pady=3)
         self.infection_sim_btn = ModernButton(data_frame, text="🦠  Infection Sim")
         self.infection_sim_btn.pack(fill=tk.X, pady=3)

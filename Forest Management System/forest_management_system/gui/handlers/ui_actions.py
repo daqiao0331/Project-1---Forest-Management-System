@@ -51,7 +51,7 @@ class UIActions:
             return
         self.delete_tree_mode = True
         self.app.status_bar.set_text("🖱️ Click a tree to delete...")
-        self.control_panel.delete_tree_btn.config(text="❌ Exit", command=self.exit_delete_tree, style='Red.TButton')
+        self.control_panel.delete_tree_btn.config(text="✖ Exit", command=self.exit_delete_tree, style='Red.TButton')
 
     def exit_delete_tree(self):
         self.delete_tree_mode = False
@@ -92,7 +92,7 @@ class UIActions:
         self.add_path_mode = True
         self.canvas.path_start = None
         self.app.status_bar.set_text("🖱️ Click the first tree...")
-        self.control_panel.add_path_btn.config(text="❌ Exit", command=self.exit_add_path, style='Red.TButton')
+        self.control_panel.add_path_btn.config(text="✖ Exit", command=self.exit_add_path, style='Red.TButton')
     
     def exit_add_path(self):
         self.add_path_mode = False
@@ -127,7 +127,7 @@ class UIActions:
             return
         self.delete_path_mode = True
         self.app.status_bar.set_text("🖱️ Click a path to delete...")
-        self.control_panel.delete_path_btn.config(text="❌ Exit", command=self.exit_delete_path, style='Red.TButton')
+        self.control_panel.delete_path_btn.config(text="✖ Exit", command=self.exit_delete_path, style='Red.TButton')
 
     def exit_delete_path(self):
         self.delete_path_mode = False
@@ -497,7 +497,7 @@ class UIActions:
             # Reset all control panel buttons
             self.control_panel.add_path_btn.config(text="🔗 Add Path", command=self.start_add_path, style='Modern.TButton')
             self.control_panel.delete_path_btn.config(text="✂️ Delete Path", command=self.start_delete_path, style='Modern.TButton')
-            self.control_panel.delete_tree_btn.config(text="🌳 Delete Tree", command=self.start_delete_tree, style='Modern.TButton')
+            self.control_panel.delete_tree_btn.config(text="✖ Delete Tree", command=self.start_delete_tree, style='Modern.TButton')
             self.control_panel.infection_sim_btn.config(text="🦠 Infection Sim", command=self.enter_infection_sim_mode, style='Modern.TButton')
             self.app.status_bar.set_text("✅ Data cleared.")
             self.app.update_display()
@@ -507,7 +507,7 @@ class UIActions:
         self.infection_sim_mode = True
         self.app._pre_infection_health = {tid: t.health_status for tid, t in self.app.forest_graph.trees.items()}
         self.app.status_bar.set_text("🦠 Click an INFECTED tree to start simulation.")
-        self.control_panel.infection_sim_btn.config(text="❌ Exit Sim", command=self.exit_infection_sim_mode, style='Red.TButton')
+        self.control_panel.infection_sim_btn.config(text="✖ Exit Sim", command=self.exit_infection_sim_mode, style='Red.TButton')
         
     def exit_infection_sim_mode(self):
         self.infection_sim_mode = False

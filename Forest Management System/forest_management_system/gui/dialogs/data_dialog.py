@@ -123,7 +123,7 @@ class LoadDataDialog:
         tree_file = self.tree_file_var.get().strip()
         path_file = self.path_file_var.get().strip()
         if not tree_file or not path_file:
-            messagebox.showerror("Error", "请同时选择树和路径文件")
+            messagebox.showerror("Error", "Please select both tree and path files")
             return
         if not os.path.exists(tree_file):
             messagebox.showerror("Error", f"Tree file not found: {tree_file}")
