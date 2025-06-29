@@ -92,13 +92,8 @@ class LoadDataDialog:
             'cursor': 'hand2'
         }
         
-        cancel_btn = tk.Button(button_frame, text="← Cancel", command=self.dialog.destroy, **main_button_style)
-        cancel_btn.pack(side=tk.LEFT, padx=12)
-        cancel_btn.bind('<Enter>', lambda e: e.widget.configure(bg='#45a049'))
-        cancel_btn.bind('<Leave>', lambda e: e.widget.configure(bg='#4CAF50'))
-        
         load_btn = tk.Button(button_frame, text="📂 Load Data", command=self._on_ok, **main_button_style)
-        load_btn.pack(side=tk.RIGHT)
+        load_btn.pack(side=tk.TOP, anchor=tk.CENTER)
         load_btn.bind('<Enter>', lambda e: e.widget.configure(bg='#45a049'))
         load_btn.bind('<Leave>', lambda e: e.widget.configure(bg='#4CAF50'))
 

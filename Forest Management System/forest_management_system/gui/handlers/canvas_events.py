@@ -48,8 +48,20 @@ class CanvasEventsHandler:
             new_y = max(5, min(95, event.ydata))
             self.app.tree_positions[self.drag_tree.tree_id] = (new_x, new_y)
             
-            # Don't update path distances when moving trees, keep original distances unchanged
-            # Visually the tree position changes, but the path weights remain the same
+            # Update all path weights connected to the dragged tree in real-time
+            tree_id = self.drag_tree.tree_id
+            for path in self.app.forest_graph.paths:
+                if path.tree1.tree_id == tree_id or path.tree2.tree_id == tree_id:
+                    # Get the connected tree ID
+                    other_tree_id = path.tree2.tree_id if path.tree1.tree_id == tree_id else path.tree1.tree_id
+                    
+                    # Calculate new distance based on current positions
+                    pos1 = self.app.tree_positions[tree_id]
+                    pos2 = self.app.tree_positions[other_tree_id]
+                    new_distance = np.sqrt((pos2[0]-pos1[0])**2 + (pos2[1]-pos1[1])**2)
+                    
+                    # Update the path weight
+                    self.app.forest_graph.update_distance(tree_id, other_tree_id, new_distance)
             
             self.app.update_display()
             self.app.status_bar.set_text(f"🔄 Moving Tree {self.drag_tree.tree_id}")
@@ -68,7 +80,7 @@ class CanvasEventsHandler:
     def on_release(self, event):
         if self.dragging and self.drag_tree:
             self.dragging = False
-            self.app.status_bar.set_text(f"✅ Tree {self.drag_tree.tree_id} moved.")
+            self.app.status_bar.set_text(f"✅ Tree {self.drag_tree.tree_id} moved and path weights updated.")
             self.drag_tree = None
             self.app.update_display()
 
