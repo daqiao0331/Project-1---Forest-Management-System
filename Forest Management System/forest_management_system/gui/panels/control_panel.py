@@ -61,6 +61,9 @@ class ControlPanel:
         self.load_data_btn.pack(fill=tk.X, pady=3)
         self.save_data_btn = ModernButton(data_frame, text="💾  Save Data")
         self.save_data_btn.pack(fill=tk.X, pady=3)
+        self.restore_original_btn = ttk.Button(data_frame, text="🔄  Restore Original Data", style='Blue.TButton')
+        self.restore_original_btn.pack(fill=tk.X, pady=3)
+        self.restore_original_btn.config(state=tk.DISABLED)  # Initially disabled
         self.clear_data_btn = ModernButton(data_frame, text="❌  Clear Data")
         self.clear_data_btn.pack(fill=tk.X, pady=3)
         self.infection_sim_btn = ModernButton(data_frame, text="🦠  Infection Sim")
@@ -80,6 +83,7 @@ class ControlPanel:
 
         self.load_data_btn.config(command=actions.load_data)
         self.save_data_btn.config(command=actions.save_data)
+        self.restore_original_btn.config(command=actions.restore_original_data)
         self.clear_data_btn.config(command=actions.clear_data)
         self.infection_sim_btn.config(command=actions.enter_infection_sim_mode)
         self.analyze_forest_btn.config(command=actions.analyze_forest)

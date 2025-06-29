@@ -11,6 +11,7 @@ from tkinter import messagebox, filedialog, simpledialog
 import networkx as nx
 from sklearn.manifold import MDS
 import scipy.optimize
+import tkinter as tk
 
 from ...components.tree import Tree
 from ...components.path import Path
@@ -376,10 +377,37 @@ class UIActions:
                 # avg_error = total_error / len(self.app.forest_graph.paths)
                 # print(f"Layout average error rate: {avg_error:.2f}")
             
+            # Create a snapshot of the original imported data
+            self.app.create_snapshot()
+            
+            # Enable the restore original data button
+            self.control_panel.restore_original_btn.config(state='normal')
+            
             self.app.update_display()
             self.app.status_bar.set_text("✅ Data loaded successfully.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load data: {e}", parent=self.root)
+
+    def restore_original_data(self):
+        """Restore the forest data to its original state from the snapshot."""
+        if not self.app.has_snapshot:
+            messagebox.showwarning("Warning", "No original data snapshot available.", parent=self.root)
+            return
+            
+        # Ask for confirmation
+        confirm = messagebox.askyesno(
+            "Confirm Restore", 
+            "This will revert all changes back to the original imported data. Continue?",
+            parent=self.root
+        )
+        
+        if not confirm:
+            return
+            
+        if self.app.restore_snapshot():
+            self.app.status_bar.set_text("✅ Forest data restored to original imported state.")
+        else:
+            self.app.status_bar.set_text("❌ Failed to restore original data.")
 
     def save_data(self):
         if not self.app.forest_graph.trees:
@@ -444,6 +472,13 @@ class UIActions:
             self.canvas._infection_highlight = set()
             self.canvas._infection_edge_highlight = set()
             self.canvas._infection_labels = {}
+            
+            # Clear snapshot data
+            self.app.has_snapshot = False
+            self.app.snapshot_forest_graph = None
+            self.app.snapshot_tree_positions = None
+            self.control_panel.restore_original_btn.config(state=tk.DISABLED)
+            
             # Reset all control panel buttons
             self.control_panel.add_path_btn.config(text="🔗 Add Path", command=self.start_add_path, style='Modern.TButton')
             self.control_panel.delete_path_btn.config(text="✂️ Delete Path", command=self.start_delete_path, style='Modern.TButton')

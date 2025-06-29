@@ -40,6 +40,9 @@ class MainWindow:
         style.configure('Red.TButton', background='#e74c3c', foreground='white', 
                         font=('Segoe UI', 15, 'bold'), padding=(18, 10))
         style.map('Red.TButton', background=[('active', '#c0392b')])
+        style.configure('Blue.TButton', background='#3498db', foreground='white', 
+                        font=('Segoe UI', 15, 'bold'), padding=(18, 10))
+        style.map('Blue.TButton', background=[('active', '#2980b9')])
         style.configure('Modern.TLabelframe', background='#ffffff', relief='flat', borderwidth=1)
         style.configure('Modern.TLabelframe.Label', font=('Segoe UI', 16, 'bold'), 
                         foreground='#2c3e50', background='#ffffff')
