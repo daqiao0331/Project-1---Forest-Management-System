@@ -1,0 +1,10 @@
+tree_id,species,age,health_status
+1,Oak,100,Healthy
+2,Pine,50,Infected
+2,Maple,75,Healthy
+2,Spruce,25,At Risk
+2,Birch,80,Healthy
+2,Willow,60,Healthy
+2,Cherry,30,Infected
+2,Chestnut,90,Healthy
+2,Ash,45,At Risk
