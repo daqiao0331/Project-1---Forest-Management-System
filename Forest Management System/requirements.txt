@@ -4,10 +4,3 @@ matplotlib>=3.5.0,<4.0.0
 networkx>=2.6.3,<3.0.0
 scikit-learn>=1.0.0,<2.0.0
 scipy>=1.8.0,<2.0.0
-
-# Python 3.6+ is required
-# Note: tkinter comes with Python and is not installable via pip
-# If tkinter is missing, install it via your system package manager:
-# - Windows: Included with Python
-# - macOS: brew install python-tk
-# - Ubuntu/Debian: apt-get install python3-tk 
