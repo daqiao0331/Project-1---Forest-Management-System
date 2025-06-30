@@ -14,12 +14,11 @@ from forest_management_system.data_structures.forest_graph import ForestGraph
 class TestInfectionSimulation(unittest.TestCase):
     def setUp(self):
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        trees_file = os.path.join(base_dir, 'data', 'forest_management_dataset-trees.csv')
-        paths_file = os.path.join(base_dir, 'data', 'forest_management_dataset-paths.csv')
+        trees_file = os.path.join(base_dir, '..', 'data', 'forest_management_dataset-trees.csv')
+        paths_file = os.path.join(base_dir, '..', 'data', 'forest_management_dataset-paths.csv')
         try:
             self.graph = load_forest_from_files(trees_file, paths_file)
         except FileNotFoundError:
-            # Create a simple test graph if data files don't exist
             self.graph = self.create_test_graph()
 
     def create_test_graph(self):
