@@ -122,7 +122,9 @@ class UIActions:
         self.app.update_display()
 
     def start_delete_path(self):
-        if not self.app.forest_graph.paths:
+        # Check if there are any paths
+        has_paths = any(len(neighbors) > 0 for neighbors in self.app.forest_graph.adj_list.values())
+        if not has_paths:
             messagebox.showwarning("Warning", "No paths to delete.", parent=self.root)
             return
         self.delete_path_mode = True
@@ -217,11 +219,11 @@ class UIActions:
                     random.uniform(10, 90)   # y: 10-90, wider range
                 )
             
-            # Build weight mapping
+            # Build weight mapping from adjacency list
             weights = {}
-            for path in self.app.forest_graph.paths:
-                tid1, tid2 = path.tree1.tree_id, path.tree2.tree_id
-                weights[(tid1, tid2)] = weights[(tid2, tid1)] = path.weight
+            for tree1_id, neighbors in self.app.forest_graph.adj_list.items():
+                for tree2_id, weight in neighbors.items():
+                    weights[(tree1_id, tree2_id)] = weight
             
             # Normalize weights to a larger range, increasing node spacing
             if weights:
@@ -373,24 +375,22 @@ class UIActions:
             
             # Calculate layout quality
             total_error = 0
-            if self.app.forest_graph.paths:
-                for path in self.app.forest_graph.paths:
-                    tid1, tid2 = path.tree1.tree_id, path.tree2.tree_id
-                    x1, y1 = positions[tid1]
-                    x2, y2 = positions[tid2]
-                    
-                    # Actual visual distance
-                    actual_dist = np.sqrt((x2-x1)**2 + (y2-y1)**2)
-                    # Original non-normalized weight
-                    desired_dist = path.weight
-                    
-                    # Calculate proportional error
-                    error = abs(actual_dist - desired_dist) / max(desired_dist, 0.1)
-                    total_error += error
-                
-                # Skip terminal output
-                # avg_error = total_error / len(self.app.forest_graph.paths)
-                # print(f"Layout average error rate: {avg_error:.2f}")
+            has_paths = any(len(neighbors) > 0 for neighbors in self.app.forest_graph.adj_list.values())
+            if has_paths:
+                for tree1_id, neighbors in self.app.forest_graph.adj_list.items():
+                    for tree2_id, weight in neighbors.items():
+                        if tree1_id < tree2_id:  # 只处理每条边一次
+                            x1, y1 = positions[tree1_id]
+                            x2, y2 = positions[tree2_id]
+                            
+                            # Actual visual distance
+                            actual_dist = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+                            # Original non-normalized weight
+                            desired_dist = weight
+                            
+                            # Calculate proportional error
+                            error = abs(actual_dist - desired_dist) / max(desired_dist, 0.1)
+                            total_error += error
             
             # Create a snapshot of the original imported data
             self.app.create_snapshot()
@@ -463,8 +463,12 @@ class UIActions:
             with open(path_file_path, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
                 writer.writerow(['tree_id1', 'tree_id2', 'distance'])
-                for path in self.app.forest_graph.paths:
-                    writer.writerow([path.tree1.tree_id, path.tree2.tree_id, path.weight])
+                # Get path data from adjacency list
+                for tree1_id, neighbors in self.app.forest_graph.adj_list.items():
+                    for tree2_id, weight in neighbors.items():
+                        # Only save each edge once (undirected graph)
+                        if tree1_id < tree2_id:
+                            writer.writerow([tree1_id, tree2_id, weight])
 
             self.app.status_bar.set_text(f"✅ Data saved successfully.")
             messagebox.showinfo("Success", "Data saved successfully!", parent=self.root)

@@ -27,6 +27,13 @@ def load_forest_from_files(tree_file, path_file):
     tree_count = 0
     path_count = 0
     
+    # Messages to collect
+    message_summary = {
+        "errors": [],      # Critical errors
+        "warnings": [],    # Non-critical issues
+        "info": []         # Information
+    }
+    
     try:
         # Load trees
         with open(tree_file, newline='', encoding='utf-8') as csvfile:
@@ -42,10 +49,9 @@ def load_forest_from_files(tree_file, path_file):
                 try:
                     tree_id = int(row['tree_id'])
                     
-                    # Check if tree_id already exists in the graph
+                    # Record duplicate IDs but don't skip, newer entries will overwrite older ones
                     if tree_id in graph.trees:
                         duplicate_ids.append((tree_id, row_num))
-                        continue
                     
                     # Create tree
                     tree = Tree(
@@ -65,35 +71,36 @@ def load_forest_from_files(tree_file, path_file):
     except Exception as e:
         raise ValueError(f"Error reading tree file: {str(e)}")
     
-    # If no trees were loaded successfully, stop
+    # If no trees were loaded successfully, report error but continue to load paths
     if tree_count == 0:
         error_msg = "No valid trees found in the data file."
         if errors:
             error_msg += f"\nErrors: {'; '.join(errors[:5])}"
             if len(errors) > 5:
                 error_msg += f" and {len(errors) - 5} more."
-        messagebox.showerror("Data Loading Error", error_msg)
-        return graph
+        message_summary["errors"].append(error_msg)
     
-    # Show warnings about duplicate IDs
+    # Add warnings about duplicate IDs
     if duplicate_ids:
         dup_details = ", ".join([f"ID {id} (line {line})" for id, line in duplicate_ids[:5]])
         if len(duplicate_ids) > 5:
             dup_details += f" and {len(duplicate_ids) - 5} more"
             
-        warning_msg = f"Warning: {len(duplicate_ids)} duplicate tree IDs found in the data: {dup_details}.\n" \
-                      f"Duplicate IDs were skipped."
-        messagebox.showwarning("Duplicate Tree IDs", warning_msg)
+        warning_msg = f"Warning: {len(duplicate_ids)} duplicate tree IDs found in the data: {dup_details}. " \
+                      f"Duplicate IDs have been overwritten by newer entries."
+        message_summary["warnings"].append(warning_msg)
     
-    # Show general errors
+    # Add warnings about general errors
     if errors:
         error_details = "\n".join(errors[:5])
         if len(errors) > 5:
             error_details += f"\n... and {len(errors) - 5} more errors."
-        messagebox.showwarning("Data Loading Issues", f"Some data could not be loaded:\n{error_details}")
+        message_summary["warnings"].append(f"Some tree data could not be loaded:\n{error_details}")
     
     # Load paths
     path_errors = []
+    path_file_missing = False
+    
     try:
         with open(path_file, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -144,24 +151,50 @@ def load_forest_from_files(tree_file, path_file):
                 except ValueError as e:
                     path_errors.append(f"Line {row_num}: Invalid path data - {str(e)}")
     except FileNotFoundError:
-        messagebox.showwarning("Path File Error", f"Path file not found: {path_file}")
+        path_file_missing = True
+        message_summary["warnings"].append(f"Path file not found: {path_file}")
     except Exception as e:
-        messagebox.showwarning("Path Loading Error", f"Error reading path file: {str(e)}")
+        message_summary["warnings"].append(f"Error reading path file: {str(e)}")
     
+    # Add path errors to summary
     if path_errors:
         error_details = "\n".join(path_errors[:5])
         if len(path_errors) > 5:
             error_details += f"\n... and {len(path_errors) - 5} more errors."
-        messagebox.showwarning("Path Loading Issues", f"Some paths could not be loaded:\n{error_details}")
+        message_summary["warnings"].append(f"Some paths could not be loaded:\n{error_details}")
     
-    # Show summary
-    messagebox.showinfo("Data Loading Summary", 
-                       f"Successfully loaded:\n"
-                       f"• {tree_count} trees\n"
-                       f"• {path_count} paths\n\n"
-                       f"Issues:\n"
-                       f"• {len(duplicate_ids)} duplicate tree IDs\n"
-                       f"• {len(errors)} tree data errors\n"
-                       f"• {len(path_errors)} path data errors")
+    # Add loading summary to info
+    message_summary["info"].append(
+        f"Successfully loaded:\n"
+        f"• {tree_count} trees\n"
+        f"• {path_count} paths\n\n"
+        f"Issues:\n"
+        f"• {len(duplicate_ids)} duplicate tree IDs\n"
+        f"• {len(errors)} tree data errors\n"
+        f"• {len(path_errors)} path data errors"
+    )
+    
+    # Show unified message dialog
+    if message_summary["errors"]:
+        # Critical errors - show error dialog
+        messagebox.showerror(
+            "Data Loading Errors", 
+            "\n\n".join(message_summary["errors"] + 
+                        (["--WARNINGS--"] + message_summary["warnings"] if message_summary["warnings"] else []) + 
+                        (["--INFO--"] + message_summary["info"] if message_summary["info"] else []))
+        )
+    elif message_summary["warnings"]:
+        # Warnings - show warning dialog with info
+        messagebox.showwarning(
+            "Data Loading Warnings", 
+            "\n\n".join(message_summary["warnings"] + 
+                        (["--INFO--"] + message_summary["info"] if message_summary["info"] else []))
+        )
+    else:
+        # Just info - show info dialog
+        messagebox.showinfo(
+            "Data Loading Complete", 
+            "\n\n".join(message_summary["info"])
+        )
                 
     return graph

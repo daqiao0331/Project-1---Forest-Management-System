@@ -50,11 +50,8 @@ class CanvasEventsHandler:
             
             # Update all path weights connected to the dragged tree in real-time
             tree_id = self.drag_tree.tree_id
-            for path in self.app.forest_graph.paths:
-                if path.tree1.tree_id == tree_id or path.tree2.tree_id == tree_id:
-                    # Get the connected tree ID
-                    other_tree_id = path.tree2.tree_id if path.tree1.tree_id == tree_id else path.tree1.tree_id
-                    
+            if tree_id in self.app.forest_graph.adj_list:
+                for other_tree_id, _ in self.app.forest_graph.adj_list[tree_id].items():
                     # Calculate new distance based on current positions
                     pos1 = self.app.tree_positions[tree_id]
                     pos2 = self.app.tree_positions[other_tree_id]
@@ -94,21 +91,32 @@ class CanvasEventsHandler:
 
     def find_path_at_position(self, x, y, threshold=0.5):
         if x is None or y is None: return None
-        for path in self.app.forest_graph.paths:
-            pos1 = self.app.tree_positions.get(path.tree1.tree_id)
-            pos2 = self.app.tree_positions.get(path.tree2.tree_id)
-            if not pos1 or not pos2: continue
-            
-            x1, y1 = pos1
-            x2, y2 = pos2
-            
-            dx, dy = x2 - x1, y2 - y1
-            if dx == dy == 0:
-                dist = np.sqrt((x - x1)**2 + (y - y1)**2)
-            else:
-                t = max(0, min(1, ((x - x1) * dx + (y - y1) * dy) / (dx**2 + dy**2)))
-                proj_x, proj_y = x1 + t * dx, y1 + t * dy
-                dist = np.sqrt((x - proj_x)**2 + (y - proj_y)**2)
-            if dist <= threshold:
-                return path
+        
+        # Iterate through all edges
+        for tree1_id, neighbors in self.app.forest_graph.adj_list.items():
+            for tree2_id, weight in neighbors.items():
+                # Process each edge only once
+                if tree1_id < tree2_id:
+                    pos1 = self.app.tree_positions.get(tree1_id)
+                    pos2 = self.app.tree_positions.get(tree2_id)
+                    if not pos1 or not pos2: continue
+                    
+                    x1, y1 = pos1
+                    x2, y2 = pos2
+                    
+                    dx, dy = x2 - x1, y2 - y1
+                    if dx == dy == 0:
+                        dist = np.sqrt((x - x1)**2 + (y - y1)**2)
+                    else:
+                        t = max(0, min(1, ((x - x1) * dx + (y - y1) * dy) / (dx**2 + dy**2)))
+                        proj_x, proj_y = x1 + t * dx, y1 + t * dy
+                        dist = np.sqrt((x - proj_x)**2 + (y - proj_y)**2)
+                    
+                    if dist <= threshold:
+                        # Create a temporary Path object to maintain interface compatibility
+                        from ...data_structures.path import Path
+                        tree1 = self.app.forest_graph.trees[tree1_id]
+                        tree2 = self.app.forest_graph.trees[tree2_id]
+                        return Path(tree1, tree2, weight)
+        
         return None

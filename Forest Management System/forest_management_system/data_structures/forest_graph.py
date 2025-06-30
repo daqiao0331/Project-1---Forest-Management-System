@@ -5,7 +5,6 @@ class ForestGraph:
     def __init__(self):
         self.trees = {}  # {tree_id: Tree object}
         self.adj_list = {}  # {tree_id: {neighbor_id: weight}}
-        self.paths = []  # Keep paths for backwards compatibility during transition
 
     def add_tree(self, tree: Tree):
         self.trees[tree.tree_id] = tree
@@ -23,9 +22,6 @@ class ForestGraph:
             for tid in self.adj_list:
                 if tree_id in self.adj_list[tid]:
                     self.adj_list[tid].pop(tree_id)
-            
-            # Update paths list for backwards compatibility
-            self.paths = [p for p in self.paths if p.tree1.tree_id != tree_id and p.tree2.tree_id != tree_id]
 
     def add_path(self, path: Path):
         tree1_id = path.tree1.tree_id
@@ -41,10 +37,6 @@ class ForestGraph:
         # Add to adjacency list (undirected graph)
         self.adj_list[tree1_id][tree2_id] = weight
         self.adj_list[tree2_id][tree1_id] = weight
-        
-        # Add to paths list for backwards compatibility
-        if path not in self.paths:
-            self.paths.append(path)
 
     def remove_path(self, tree_id1, tree_id2):
         # Remove from adjacency list
@@ -52,10 +44,6 @@ class ForestGraph:
             self.adj_list[tree_id1].pop(tree_id2)
         if tree_id2 in self.adj_list and tree_id1 in self.adj_list[tree_id2]:
             self.adj_list[tree_id2].pop(tree_id1)
-        
-        # Update paths list for backwards compatibility
-        self.paths = [p for p in self.paths if not ((p.tree1.tree_id == tree_id1 and p.tree2.tree_id == tree_id2) or
-                                              (p.tree1.tree_id == tree_id2 and p.tree2.tree_id == tree_id1))]
 
     def update_distance(self, tree_id1, tree_id2, new_weight):
         # Update in adjacency list
@@ -63,11 +51,6 @@ class ForestGraph:
             self.adj_list[tree_id1][tree_id2] = new_weight
         if tree_id2 in self.adj_list and tree_id1 in self.adj_list[tree_id2]:
             self.adj_list[tree_id2][tree_id1] = new_weight
-        
-        # Update in paths list for backwards compatibility
-        for p in self.paths:
-            if (p.tree1.tree_id == tree_id1 and p.tree2.tree_id == tree_id2) or (p.tree1.tree_id == tree_id2 and p.tree2.tree_id == tree_id1):
-                p.weight = new_weight
 
     def update_health_status(self, tree_id, new_status):
         if tree_id in self.trees:
@@ -89,7 +72,6 @@ class ForestGraph:
         """Remove all trees and paths from the forest graph."""
         self.trees.clear()
         self.adj_list.clear()
-        self.paths.clear()
 
     def __repr__(self):
         s = 'ForestGraph:\n'

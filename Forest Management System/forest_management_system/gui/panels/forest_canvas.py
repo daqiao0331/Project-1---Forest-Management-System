@@ -154,46 +154,57 @@ class ForestCanvas:
                              ha='center', va='bottom', fontsize=10, color='#2c3e50',
                              bbox=dict(boxstyle='round,pad=0.2', fc='white', alpha=0.7, ec='#7ed6df'))
         
-        # Get all path weights for comparison and drawing
-        path_weights = [path.weight for path in forest_graph.paths]
+        # Get all path weights from adjacency list for comparison and drawing
+        path_weights = []
+        for tree1_id, neighbors in forest_graph.adj_list.items():
+            for tree2_id, weight in neighbors.items():
+                if tree1_id < tree2_id:  # Only add each edge once
+                    path_weights.append(weight)
+        
         max_weight = max(path_weights) if path_weights else 1
         min_weight = min(path_weights) if path_weights else 1
         
-        # Draw Paths
-        for path in forest_graph.paths:
-            if path.tree1.tree_id in tree_positions and path.tree2.tree_id in tree_positions:
-                x1, y1 = tree_positions[path.tree1.tree_id]
-                x2, y2 = tree_positions[path.tree2.tree_id]
-                
-                # Calculate visual distance versus actual weight
-                visual_dist = np.sqrt((x2-x1)**2 + (y2-y1)**2)
-                norm_weight = (path.weight - min_weight) / (max_weight - min_weight) if max_weight > min_weight else 0.5
-                
-                is_shortest = any((path.tree1.tree_id == self._shortest_path_highlight[i] and path.tree2.tree_id == self._shortest_path_highlight[i+1]) or \
-                                  (path.tree2.tree_id == self._shortest_path_highlight[i] and path.tree1.tree_id == self._shortest_path_highlight[i+1]) for i in range(len(self._shortest_path_highlight)-1))
-                is_infection = hasattr(self, '_infection_edge_highlight') and ((path.tree1.tree_id, path.tree2.tree_id) in getattr(self, '_infection_edge_highlight', set()) or (path.tree2.tree_id, path.tree1.tree_id) in getattr(self, '_infection_edge_highlight', set()))
-                
-                # Use uniform line color and thickness
-                color = '#e74c3c' if is_infection else ('#2980b9' if is_shortest else '#95a5a6')
-                
-                # Use fixed thickness, not varying by weight
-                lw = 5 if is_infection else (4 if is_shortest else 2)
-                
-                alpha = 1.0 if is_infection else (0.9 if is_shortest else 0.7)
-                self.ax.plot([x1, x2], [y1, y2], color=color, alpha=alpha, linewidth=lw, zorder=1)
-                
-                if is_infection:
-                    dx, dy = x2-x1, y2-y1
-                    arr_x, arr_y = x1 + dx*0.6, y1 + dy*0.6
-                    self.ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
-                        arrowprops=dict(arrowstyle='->', color='#e74c3c', lw=2), zorder=2)
-                
-                # Calculate label position
-                mx, my = (x1+x2)/2, (y1+y2)/2
-                
-                # Display weight with uniform background color
-                self.ax.text(mx, my, f'{path.weight:.1f}', fontsize=12, color='#2c3e50', zorder=10, 
-                           bbox=dict(fc='white', alpha=0.7, boxstyle='round,pad=0.2', ec='#95a5a6', lw=0.5))
+        # Draw Paths from adjacency list
+        for tree1_id, neighbors in forest_graph.adj_list.items():
+            for tree2_id, weight in neighbors.items():
+                if tree1_id < tree2_id:  # Only process each edge once
+                    if tree1_id in tree_positions and tree2_id in tree_positions:
+                        x1, y1 = tree_positions[tree1_id]
+                        x2, y2 = tree_positions[tree2_id]
+                        
+                        # Get tree objects
+                        tree1 = forest_graph.trees[tree1_id]
+                        tree2 = forest_graph.trees[tree2_id]
+                        
+                        # Calculate visual distance versus actual weight
+                        visual_dist = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+                        norm_weight = (weight - min_weight) / (max_weight - min_weight) if max_weight > min_weight else 0.5
+                        
+                        is_shortest = any((tree1_id == self._shortest_path_highlight[i] and tree2_id == self._shortest_path_highlight[i+1]) or \
+                                          (tree2_id == self._shortest_path_highlight[i] and tree1_id == self._shortest_path_highlight[i+1]) for i in range(len(self._shortest_path_highlight)-1))
+                        is_infection = hasattr(self, '_infection_edge_highlight') and ((tree1_id, tree2_id) in getattr(self, '_infection_edge_highlight', set()) or (tree2_id, tree1_id) in getattr(self, '_infection_edge_highlight', set()))
+                        
+                        # Use uniform line color and thickness
+                        color = '#e74c3c' if is_infection else ('#2980b9' if is_shortest else '#95a5a6')
+                        
+                        # Use fixed thickness, not varying by weight
+                        lw = 5 if is_infection else (4 if is_shortest else 2)
+                        
+                        alpha = 1.0 if is_infection else (0.9 if is_shortest else 0.7)
+                        self.ax.plot([x1, x2], [y1, y2], color=color, alpha=alpha, linewidth=lw, zorder=1)
+                        
+                        if is_infection:
+                            dx, dy = x2-x1, y2-y1
+                            arr_x, arr_y = x1 + dx*0.6, y1 + dy*0.6
+                            self.ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
+                                arrowprops=dict(arrowstyle='->', color='#e74c3c', lw=2), zorder=2)
+                        
+                        # Calculate label position
+                        mx, my = (x1+x2)/2, (y1+y2)/2
+                        
+                        # Display weight with uniform background color
+                        self.ax.text(mx, my, f'{weight:.1f}', fontsize=12, color='#2c3e50', zorder=10, 
+                                   bbox=dict(fc='white', alpha=0.7, boxstyle='round,pad=0.2', ec='#95a5a6', lw=0.5))
 
         # Draw Trees
         health_colors = {HealthStatus.HEALTHY: '#2ecc71', HealthStatus.INFECTED: '#e74c3c', HealthStatus.AT_RISK: '#f39c12'}

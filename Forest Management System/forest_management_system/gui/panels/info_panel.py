@@ -40,7 +40,13 @@ class InfoPanel:
         self.info_text.delete(1.0, tk.END)
         
         tree_count = len(forest_graph.trees)
-        path_count = len(forest_graph.paths)
+        
+        # Calculate path count
+        path_count = 0
+        for tree_id, neighbors in forest_graph.adj_list.items():
+            path_count += len(neighbors)
+        # Since paths are undirected, each path is counted twice in the adjacency list
+        path_count //= 2
         
         try:
             reserves = find_reserves_func(forest_graph)
