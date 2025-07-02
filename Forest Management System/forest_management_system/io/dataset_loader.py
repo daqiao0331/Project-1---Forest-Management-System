@@ -5,6 +5,7 @@ from ..data_structures.tree import Tree
 from ..data_structures.path import Path
 from ..data_structures.forest_graph import ForestGraph
 from ..data_structures.health_status import HealthStatus
+import os
 
 def load_forest_from_files(tree_file, path_file):
     """
@@ -35,9 +36,28 @@ def load_forest_from_files(tree_file, path_file):
     }
     
     try:
+        # Check if file exists and is not empty
+        if not os.path.exists(tree_file):
+            raise FileNotFoundError(f"Tree file not found: {tree_file}")
+        
+        if os.path.getsize(tree_file) == 0:
+            raise ValueError("Tree file is empty")
+            
         # Load trees
         with open(tree_file, newline='', encoding='utf-8') as csvfile:
+            # Check if file has content
+            first_line = csvfile.readline()
+            if not first_line.strip():
+                raise ValueError("Tree file is empty or contains no valid data")
+                
+            # Reset file pointer to beginning
+            csvfile.seek(0)
+            
             reader = csv.DictReader(csvfile)
+            
+            # Validate reader and fieldnames
+            if not reader or not hasattr(reader, 'fieldnames') or not reader.fieldnames:
+                raise ValueError("Invalid CSV format or empty header row in tree file")
             
             # Validate columns
             required_columns = ['tree_id', 'species', 'age', 'health_status']
@@ -102,8 +122,56 @@ def load_forest_from_files(tree_file, path_file):
     path_file_missing = False
     
     try:
+        # Check if file exists and is not empty
+        if not os.path.exists(path_file):
+            path_file_missing = True
+            message_summary["warnings"].append(f"Error reading path file: Path file not found: {path_file}")
+            # Immediately show warning if path file is missing
+            messagebox.showwarning(
+                "Data Loading Warnings", 
+                "\n\n".join(message_summary["warnings"] + 
+                            (["--INFO--"] + message_summary["info"] if message_summary["info"] else []))
+            )
+            return graph  # Return the graph with trees only
+            
+        if os.path.getsize(path_file) == 0:
+            message_summary["warnings"].append("Error reading path file: Path file is empty")
+            # Immediately show warning if path file is empty
+            messagebox.showwarning(
+                "Data Loading Warnings", 
+                "\n\n".join(message_summary["warnings"] + 
+                            (["--INFO--"] + message_summary["info"] if message_summary["info"] else []))
+            )
+            return graph  # Return the graph with trees only
+        
         with open(path_file, newline='', encoding='utf-8') as csvfile:
+            # Check if file has content
+            first_line = csvfile.readline()
+            if not first_line.strip():
+                message_summary["warnings"].append("Error reading path file: Path file is empty or contains no valid data")
+                # Immediately show warning if path file is empty or invalid
+                messagebox.showwarning(
+                    "Data Loading Warnings", 
+                    "\n\n".join(message_summary["warnings"] + 
+                                (["--INFO--"] + message_summary["info"] if message_summary["info"] else []))
+                )
+                return graph  # Return the graph with trees only
+                
+            # Reset file pointer to beginning
+            csvfile.seek(0)
+            
             reader = csv.DictReader(csvfile)
+            
+            # Validate reader and fieldnames
+            if not reader or not hasattr(reader, 'fieldnames') or not reader.fieldnames:
+                message_summary["warnings"].append("Error reading path file: Invalid CSV format or empty header row in path file")
+                # Immediately show warning if path file header is invalid
+                messagebox.showwarning(
+                    "Data Loading Warnings", 
+                    "\n\n".join(message_summary["warnings"] + 
+                                (["--INFO--"] + message_summary["info"] if message_summary["info"] else []))
+                )
+                return graph  # Return the graph with trees only
             
             # Validate columns - support both naming conventions
             tree1_col = 'tree_1' if 'tree_1' in reader.fieldnames else 'tree_id1'
@@ -118,7 +186,14 @@ def load_forest_from_files(tree_file, path_file):
                     missing.append('tree_2/tree_id2')
                 if distance_col not in reader.fieldnames:
                     missing.append('distance')
-                raise ValueError(f"Missing required columns in path file: {', '.join(missing)}")
+                message_summary["warnings"].append(f"Error reading path file: Missing required columns in path file: {', '.join(missing)}")
+                # Immediately show warning if required columns are missing in path file
+                messagebox.showwarning(
+                    "Data Loading Warnings", 
+                    "\n\n".join(message_summary["warnings"] + 
+                                (["--INFO--"] + message_summary["info"] if message_summary["info"] else []))
+                )
+                return graph  # Return the graph with trees only
             
             for row_num, row in enumerate(reader, 2):
                 try:
@@ -152,7 +227,7 @@ def load_forest_from_files(tree_file, path_file):
                     path_errors.append(f"Line {row_num}: Invalid path data - {str(e)}")
     except FileNotFoundError:
         path_file_missing = True
-        message_summary["warnings"].append(f"Path file not found: {path_file}")
+        message_summary["warnings"].append(f"Error reading path file: Path file not found: {path_file}")
     except Exception as e:
         message_summary["warnings"].append(f"Error reading path file: {str(e)}")
     

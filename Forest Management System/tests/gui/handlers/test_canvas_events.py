@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 from forest_management_system.gui.handlers.canvas_events import CanvasEventsHandler
+from forest_management_system.data_structures.tree import Tree
+from forest_management_system.data_structures.health_status import HealthStatus
 
 class TestCanvasEventsHandler(unittest.TestCase):
     """
@@ -40,10 +42,14 @@ class TestCanvasEventsHandler(unittest.TestCase):
         event = MagicMock()
         event.inaxes = self.mock_ax
         event.xdata, event.ydata = 100, 100
+        self.app.ui_actions.delete_tree_mode = False
+        self.app.ui_actions.delete_path_mode = False
+        self.app.ui_actions.infection_sim_mode = False
+        self.app.ui_actions.add_path_mode = False
         self.handler._find_tree_at_position = MagicMock(return_value=None)
         self.handler.on_press(event)
         self.assertFalse(self.handler.dragging)
-        self.app.status_bar.set_text.assert_called()
+        self.app.status_bar.set_text.assert_called_with("Ready")
         self.app.update_display.assert_called()
 
     def test_on_press_delete_tree_mode(self):
@@ -86,9 +92,8 @@ class TestCanvasEventsHandler(unittest.TestCase):
 
     def test_on_press_outside_axes(self):
         event = MagicMock()
-        event.inaxes = None  # 不是canvas.ax
+        event.inaxes = None  
         self.handler.on_press(event)
-        # 确保没有进一步的操作
         self.app.status_bar.set_text.assert_not_called()
         self.app.update_display.assert_not_called()
 
@@ -151,7 +156,6 @@ class TestCanvasEventsHandler(unittest.TestCase):
         self.handler.drag_tree = None
         self.handler.on_release(event)
         self.assertFalse(self.handler.dragging)
-        # 不应该调用任何东西
         self.app.status_bar.set_text.assert_not_called()
         self.app.update_display.assert_not_called()
 
@@ -176,9 +180,13 @@ class TestCanvasEventsHandler(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_find_path_at_position_found(self):
+        tree1 = Tree(1, "Pine", 10, HealthStatus.HEALTHY)
+        tree2 = Tree(2, "Oak", 15, HealthStatus.HEALTHY)
+        
         self.app.forest_graph.adj_list = {1: {2: 1.0}, 2: {1: 1.0}}
         self.app.tree_positions = {1: (0, 0), 2: (0, 0)}
-        self.app.forest_graph.trees = {1: MagicMock(tree_id=1), 2: MagicMock(tree_id=2)}
+        self.app.forest_graph.trees = {1: tree1, 2: tree2}
+        
         with patch('forest_management_system.gui.handlers.canvas_events.Path') as MockPath:
             MockPath.return_value = MagicMock()
             result = self.handler.find_path_at_position(0, 0)

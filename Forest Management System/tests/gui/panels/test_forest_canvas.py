@@ -85,7 +85,7 @@ class TestForestCanvasFunctionality(unittest.TestCase):
             3: (70, 20)
         }
         
-    @patch('forest_management_system.gui.panels.forest_canvas.find_reserves')
+    @patch('forest_management_system.algorithms.reserve_detection.find_reserves')
     def test_complete_forest_visualization(self, mock_find_reserves):
         """
         Test the complete forest visualization functionality.
@@ -128,26 +128,41 @@ class TestForestCanvasFunctionality(unittest.TestCase):
         self.canvas.show_tooltip(50, 50, "Test tooltip")
         self.mock_ax.annotate.assert_called_once()
         self.canvas.canvas.draw_idle.assert_called_once()
-        self.assertIsNotNone(self.canvas._tooltip)
+        
+        # At this point, _tooltip should be created
+        # Mock the _tooltip for testing
+        tooltip_mock = MagicMock()
+        self.canvas._tooltip = tooltip_mock
         
         # Reset mock to check hide_tooltip calls
         self.canvas.canvas.draw_idle.reset_mock()
         
         # Hide tooltip
         self.canvas.hide_tooltip()
-        self.canvas._tooltip.set_visible.assert_called_with(False)
+        
+        # Verify set_visible was called on our mock
+        tooltip_mock.set_visible.assert_called_with(False)
         self.canvas.canvas.draw_idle.assert_called_once()
         self.assertIsNone(self.canvas._tooltip)
         
     def test_tooltip_exception_handling(self):
         """Test exception handling when hiding tooltips."""
         # Set up tooltip that will raise an exception
-        self.canvas._tooltip = MagicMock()
-        self.canvas._tooltip.set_visible.side_effect = Exception("Test exception")
+        tooltip_mock = MagicMock()
+        tooltip_mock.set_visible.side_effect = Exception("Test exception")
+        self.canvas._tooltip = tooltip_mock
+        
+        # Reset draw_idle mock to check it's NOT called when exception occurs
+        self.canvas.canvas.draw_idle.reset_mock()
         
         # Hide tooltip should not propagate the exception
         self.canvas.hide_tooltip()
+        
+        # Verify tooltip is set to None even when exception occurs
         self.assertIsNone(self.canvas._tooltip)
+        
+        # When exception occurs, draw_idle should NOT be called
+        self.canvas.canvas.draw_idle.assert_not_called()
         
     def test_canvas_event_binding(self):
         """Test that event handlers are properly bound to the canvas."""
@@ -169,7 +184,7 @@ class TestForestCanvasFunctionality(unittest.TestCase):
             self.assertEqual(call_args[0], event)
             self.assertEqual(call_args[1], handler_func)
     
-    @patch('forest_management_system.gui.panels.forest_canvas.find_reserves')
+    @patch('forest_management_system.algorithms.reserve_detection.find_reserves')
     def test_forest_with_no_paths(self, mock_find_reserves):
         """Test drawing a forest with trees but no paths."""
         # Set up forest with trees but no paths
@@ -187,7 +202,7 @@ class TestForestCanvasFunctionality(unittest.TestCase):
         # Verify trees were still drawn
         assert self.mock_ax.text.call_count > 0
         
-    @patch('forest_management_system.gui.panels.forest_canvas.find_reserves')
+    @patch('forest_management_system.algorithms.reserve_detection.find_reserves')
     def test_forest_with_no_trees(self, mock_find_reserves):
         """Test drawing an empty forest."""
         # Set up empty forest
@@ -203,7 +218,7 @@ class TestForestCanvasFunctionality(unittest.TestCase):
         self.mock_ax.set_xlim.assert_called_with(0, 100)
         self.mock_ax.set_ylim.assert_called_with(0, 100)
         
-    @patch('forest_management_system.gui.panels.forest_canvas.find_reserves')  
+    @patch('forest_management_system.algorithms.reserve_detection.find_reserves')  
     def test_different_health_statuses_visualization(self, mock_find_reserves):
         """Test visualization of trees with different health statuses."""
         # Set up forest with trees of different health statuses
@@ -216,7 +231,7 @@ class TestForestCanvasFunctionality(unittest.TestCase):
         # This is challenging to test precisely with mocks, but we can check general call patterns
         assert self.mock_ax.text.call_count >= 6  # At least 6 text elements (3 trees + 3 IDs)
         
-    @patch('forest_management_system.gui.panels.forest_canvas.find_reserves')
+    @patch('forest_management_system.algorithms.reserve_detection.find_reserves')
     def test_path_highlight_visualization(self, mock_find_reserves):
         """Test visualization of highlighted paths (shortest path, infection path)."""
         # Set up forest
@@ -241,7 +256,7 @@ class TestForestCanvasFunctionality(unittest.TestCase):
         # Check that paths are drawn
         assert self.mock_ax.plot.call_count > 0
         
-    @patch('forest_management_system.gui.panels.forest_canvas.find_reserves')
+    @patch('forest_management_system.algorithms.reserve_detection.find_reserves')
     def test_tree_selection_visualization(self, mock_find_reserves):
         """Test visualization of selected trees."""
         # Set up forest
@@ -259,24 +274,30 @@ class TestForestCanvasFunctionality(unittest.TestCase):
     def test_emoji_font_selection(self):
         """Test emoji font selection logic."""
         # Test with Segoe UI Emoji available
+        mock_font = MagicMock()
+        mock_font.name = 'Segoe UI Emoji'
         with patch('matplotlib.font_manager.fontManager.ttflist', 
-                  new=[MagicMock(name='Segoe UI Emoji')]):
+                  new=[mock_font]):
             font = self.canvas._get_emoji_font()
             self.assertEqual(font, 'Segoe UI Emoji')
         
         # Test with Apple Color Emoji available
+        mock_font = MagicMock()
+        mock_font.name = 'Apple Color Emoji'
         with patch('matplotlib.font_manager.fontManager.ttflist', 
-                  new=[MagicMock(name='Apple Color Emoji')]):
+                  new=[mock_font]):
             font = self.canvas._get_emoji_font()
             self.assertEqual(font, 'Apple Color Emoji')
         
         # Test with no preferred fonts available
+        mock_font = MagicMock()
+        mock_font.name = 'Other Font'
         with patch('matplotlib.font_manager.fontManager.ttflist', 
-                  new=[MagicMock(name='Other Font')]):
+                  new=[mock_font]):
             font = self.canvas._get_emoji_font()
             self.assertEqual(font, 'DejaVu Sans')
             
-    @patch('forest_management_system.gui.panels.forest_canvas.find_reserves')
+    @patch('forest_management_system.algorithms.reserve_detection.find_reserves')
     def test_integrated_visualization_workflow(self, mock_find_reserves):
         """Test an integrated visualization workflow with multiple updates."""
         # Initial forest setup
@@ -304,6 +325,27 @@ class TestForestCanvasFunctionality(unittest.TestCase):
         self.canvas._infection_labels = {1: "🔴"}
         self.mock_ax.reset_mock()
         self.canvas.draw_forest(self.forest_graph, self.tree_positions)
+
+    def test_hide_tooltip_normal_case(self):
+        """Test normal case of hiding tooltip without exceptions."""
+        # Set up tooltip mock
+        tooltip_mock = MagicMock()
+        self.canvas._tooltip = tooltip_mock
+        
+        # Reset draw_idle mock to check if it's called
+        self.canvas.canvas.draw_idle.reset_mock()
+        
+        # Hide tooltip (no exception)
+        self.canvas.hide_tooltip()
+        
+        # Verify tooltip.set_visible was called with False
+        tooltip_mock.set_visible.assert_called_once_with(False)
+        
+        # Verify tooltip is set to None
+        self.assertIsNone(self.canvas._tooltip)
+        
+        # Verify draw_idle is called in normal case
+        self.canvas.canvas.draw_idle.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main() 

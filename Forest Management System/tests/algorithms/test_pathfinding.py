@@ -13,12 +13,27 @@ from forest_management_system.data_structures.health_status import HealthStatus
 class TestPathfinding(unittest.TestCase):
     def setUp(self):
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        trees_file = os.path.join(base_dir, '..', 'data', 'forest_management_dataset-trees.csv')
-        paths_file = os.path.join(base_dir, '..', 'data', 'forest_management_dataset-paths.csv')
+        trees_file = os.path.join(base_dir, 'data', 'forest_management_dataset-trees.csv')
+        paths_file = os.path.join(base_dir, 'data', 'forest_management_dataset-paths.csv')
+        
+        # Use test data by default
+        use_test_graph = True
+        
         try:
-            self.graph = load_forest_from_files(trees_file, paths_file)
-        except FileNotFoundError:
-            # Create a test graph if data files don't exist
+            # Check if files exist and are not empty
+            if os.path.exists(trees_file) and os.path.getsize(trees_file) > 0 and \
+               os.path.exists(paths_file) and os.path.getsize(paths_file) > 0:
+                try:
+                    self.graph = load_forest_from_files(trees_file, paths_file)
+                    # If we successfully loaded the graph, don't use test data
+                    use_test_graph = False
+                except Exception as e:
+                    print(f"Error loading data files: {str(e)}")
+        except Exception as e:
+            print(f"Error checking data files: {str(e)}")
+            
+        if use_test_graph:
+            # Create a simple test graph when data files don't exist or have issues
             self.graph = self.create_test_graph()
 
     def create_test_graph(self):

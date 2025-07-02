@@ -67,6 +67,9 @@ class UIActions:
                 del self.app.tree_positions[tree.tree_id]
             self.app.update_display()
             self.app.status_bar.set_text(f"✅ Tree {tree.tree_id} deleted.")
+        else:
+            # Add message when no tree is found
+            self.app.status_bar.set_text("No tree found at the selected position.")
 
     def modify_health(self):
         if not self.app.forest_graph.trees:

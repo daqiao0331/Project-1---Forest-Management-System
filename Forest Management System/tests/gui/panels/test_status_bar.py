@@ -7,12 +7,10 @@ class TestStatusBar(unittest.TestCase):
     Unit tests for the StatusBar class.
     """
     def setUp(self):
+        # 
         patcher_tk = patch('forest_management_system.gui.panels.status_bar.tk')
-        patcher_ttk = patch('forest_management_system.gui.panels.status_bar.ttk')
         self.mock_tk = patcher_tk.start()
-        self.mock_ttk = patcher_ttk.start()
         self.addCleanup(patcher_tk.stop)
-        self.addCleanup(patcher_ttk.stop)
         self.parent = MagicMock()
 
     def test_init(self):
@@ -21,8 +19,17 @@ class TestStatusBar(unittest.TestCase):
         """
         bar = StatusBar(self.parent)
         self.assertIsNotNone(bar)
-
-    # Add more tests for public methods if available
+        
+        
+        self.mock_tk.Label.assert_called_once()
+        
+    def test_set_text(self):
+        """
+        Test that set_text updates the status bar text.
+        """
+        bar = StatusBar(self.parent)
+        bar.set_text("Testing status")
+        bar.label.config.assert_called_once_with(text="Testing status")
 
 if __name__ == '__main__':
     unittest.main() 
