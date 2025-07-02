@@ -21,6 +21,7 @@ from ...algorithms.pathfinding import find_shortest_path
 from ..dialogs.tree_dialogs import AddTreeDialog, DeleteTreeDialog, ModifyHealthDialog
 from ..dialogs.path_dialogs import ShortestPathDialog
 from ..dialogs.data_dialog import LoadDataDialog
+from forest_management_system.algorithms.force_layout import force_directed_layout
 
 class UIActions:
     def __init__(self, app_logic):
@@ -199,193 +200,40 @@ class UIActions:
         try:
             self.app.forest_graph = load_forest_from_files(tree_file, path_file)
             self.app.tree_positions.clear()
-            
-            # Create custom force-directed layout
-            import random
-            import numpy as np
-            from collections import defaultdict
-            
-            # Get all tree IDs
+
             trees = list(self.app.forest_graph.trees.keys())
             n_trees = len(trees)
-            
             if n_trees == 0:
                 self.app.update_display()
                 self.app.status_bar.set_text("✅ No trees to display.")
                 return
-            
-            # Initial random positions - more dispersed across the canvas
-            positions = {}
-            for tree_id in trees:
-                positions[tree_id] = (
-                    random.uniform(10, 90),  # x: 10-90, wider range
-                    random.uniform(10, 90)   # y: 10-90, wider range
-                )
-            
+
             # Build weight mapping from adjacency list
             weights = {}
             for tree1_id, neighbors in self.app.forest_graph.adj_list.items():
                 for tree2_id, weight in neighbors.items():
                     weights[(tree1_id, tree2_id)] = weight
-            
-            # Normalize weights to a larger range, increasing node spacing
-            if weights:
-                weight_values = list(weights.values())
-                min_weight = min(weight_values)
-                max_weight = max(weight_values)
-                weight_range = max(max_weight - min_weight, 1)  # Avoid division by zero
-                target_min, target_max = 15, 70  # Larger target range, increase spacing
-                
-                for key, weight in list(weights.items()):
-                    normalized = target_min + (weight - min_weight) * (target_max - target_min) / weight_range
-                    weights[key] = normalized
-            
-            # Build adjacency list
-            neighbors = defaultdict(list)
-            for tid1, tid2 in weights:
-                neighbors[tid1].append(tid2)
-                neighbors[tid2].append(tid1)
-            
-            # Simulate physical forces for layout
-            temperature = 100.0  # Higher initial temperature, allowing more movement
-            iterations = 400     # Increase iteration count
-            
-            for iteration in range(iterations):
-                # Slowly decrease temperature with each iteration
-                temperature *= 0.98  # Slower cooling
-                
-                # Calculate net forces on each node
-                forces = {tid: [0, 0] for tid in trees}
-                
-                # 1. Spring forces based on edge weights (attraction/repulsion)
-                for tid1, tid2 in weights:
-                    x1, y1 = positions[tid1]
-                    x2, y2 = positions[tid2]
-                    
-                    # Calculate current distance
-                    dx, dy = x2 - x1, y2 - y1
-                    distance = max(np.sqrt(dx*dx + dy*dy), 0.01)  # Avoid division by zero
-                    
-                    # Calculate ideal distance based on weight
-                    ideal_distance = weights[(tid1, tid2)]
-                    
-                    # Calculate attraction/repulsion force (attract if too far, repel if too close)
-                    force_factor = (distance - ideal_distance) / distance
-                    
-                    # Apply force to both nodes
-                    fx, fy = force_factor * dx, force_factor * dy
-                    forces[tid1][0] += fx
-                    forces[tid1][1] += fy
-                    forces[tid2][0] -= fx
-                    forces[tid2][1] -= fy
-                
-                # 2. Enhanced repulsion forces between all nodes (avoid overcrowding)
-                for i, tid1 in enumerate(trees):
-                    for tid2 in trees[i+1:]:
-                        # Apply repulsion to all nodes for better dispersion
-                        x1, y1 = positions[tid1]
-                        x2, y2 = positions[tid2]
-                        
-                        dx, dy = x2 - x1, y2 - y1
-                        distance = max(np.sqrt(dx*dx + dy*dy), 0.01)
-                        
-                        # Increase repulsion coefficient for stronger repulsion
-                        force_factor = 200.0 / (distance * distance)  # Increased coefficient
-                        
-                        # Apply repulsion forces to both nodes
-                        fx, fy = force_factor * dx / distance, force_factor * dy / distance
-                        forces[tid1][0] -= fx
-                        forces[tid1][1] -= fy
-                        forces[tid2][0] += fx
-                        forces[tid2][1] += fy
-                
-                # 3. Boundary forces - keep nodes within canvas but allow dispersion
-                for tid in trees:
-                    x, y = positions[tid]
-                    
-                    # Looser boundary control, apply force only when close to edges
-                    if x < 5:
-                        forces[tid][0] += (5 - x) * 0.5
-                    elif x > 95:
-                        forces[tid][0] -= (x - 95) * 0.5
-                        
-                    if y < 5:
-                        forces[tid][1] += (5 - y) * 0.5
-                    elif y > 95:
-                        forces[tid][1] -= (y - 95) * 0.5
-                
-                # 4. Distribute isolated nodes around canvas edges
-                isolated = [tid for tid in trees if not neighbors[tid]]
-                if isolated:
-                    # Place isolated nodes around canvas edges
-                    corners = [(15, 15), (85, 15), (15, 85), (85, 85)]
-                    sides = [(50, 15), (85, 50), (50, 85), (15, 50)]
-                    positions_list = corners + sides
-                    
-                    for i, tid in enumerate(isolated):
-                        if i < len(positions_list):
-                            positions[tid] = positions_list[i]
-                        else:
-                            # If too many isolated nodes, distribute randomly
-                            positions[tid] = (random.uniform(10, 90), random.uniform(10, 90))
-                
-                # 5. Limit movement magnitude
-                for tid in trees:
-                    fx, fy = forces[tid]
-                    # Limit force magnitude
-                    force_mag = np.sqrt(fx*fx + fy*fy)
-                    if force_mag > temperature:
-                        fx = fx * temperature / force_mag
-                        fy = fy * temperature / force_mag
-                    
-                    # Update positions
-                    x, y = positions[tid]
-                    new_x = max(5, min(95, x + fx))
-                    new_y = max(5, min(95, y + fy))
-                    positions[tid] = (new_x, new_y)
-            
-            # Final processing: ensure sufficient node spacing
-            min_distance = 20  # Minimum node distance
-            
-            for _ in range(50):  # Maximum 50 adjustment attempts
-                has_overlap = False
-                for i, tid1 in enumerate(trees):
-                    for tid2 in trees[i+1:]:
-                        x1, y1 = positions[tid1]
-                        x2, y2 = positions[tid2]
-                        dist = np.sqrt((x2-x1)**2 + (y2-y1)**2)
-                        
-                        if dist < min_distance:  # If too close, push them apart
-                            has_overlap = True
-                            angle = np.arctan2(y2 - y1, x2 - x1)
-                            push_dist = (min_distance - dist) / 2
-                            
-                            # Push nodes in opposite directions
-                            positions[tid1] = (
-                                max(5, min(95, x1 - push_dist * np.cos(angle))),
-                                max(5, min(95, y1 - push_dist * np.sin(angle)))
-                            )
-                            positions[tid2] = (
-                                max(5, min(95, x2 + push_dist * np.cos(angle))),
-                                max(5, min(95, y2 + push_dist * np.sin(angle)))
-                            )
-                
-                if not has_overlap:
-                    break
-            
-            # Apply calculated positions to trees
+
+            # Use the force-directed layout algorithm
+            positions = force_directed_layout(
+                trees=trees,
+                adj_list=self.app.forest_graph.adj_list,
+                weights=weights,
+                canvas_size=(100, 100),
+                iterations=400,
+                min_distance=20
+            )
             self.app.tree_positions = positions
-            
+
             # Calculate layout quality
             total_error = 0
             has_paths = any(len(neighbors) > 0 for neighbors in self.app.forest_graph.adj_list.values())
             if has_paths:
                 for tree1_id, neighbors in self.app.forest_graph.adj_list.items():
                     for tree2_id, weight in neighbors.items():
-                        if tree1_id < tree2_id:  # 只处理每条边一次
+                        if tree1_id < tree2_id:  # Only process each edge once
                             x1, y1 = positions[tree1_id]
                             x2, y2 = positions[tree2_id]
-                            
                             # Actual visual distance
                             actual_dist = np.sqrt((x2-x1)**2 + (y2-y1)**2)
                             # Original non-normalized weight

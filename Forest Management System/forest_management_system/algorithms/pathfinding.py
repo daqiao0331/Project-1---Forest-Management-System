@@ -1,20 +1,6 @@
 import heapq
 
 def find_shortest_path(forest_graph, start_tree_id, end_tree_id):
-    """
-    Finds the shortest path between two trees using an optimized Dijkstra's algorithm
-    with priority queue.
-    
-    Args:
-        forest_graph: The forest graph
-        start_tree_id: The ID of the starting tree
-        end_tree_id: The ID of the destination tree
-        
-    Returns:
-        Tuple of (path, distance) where:
-            - path is a list of tree IDs representing the shortest path from start to end
-            - distance is the total distance of the path
-    """
     if start_tree_id not in forest_graph.trees or end_tree_id not in forest_graph.trees:
         return [], float('inf')
     
@@ -50,22 +36,18 @@ def find_shortest_path(forest_graph, start_tree_id, end_tree_id):
         # Check all neighbors of the current node
         for neighbor_id in forest_graph.get_neighbors(current_id):
             if neighbor_id in visited:
-                continue
-                
+                continue   
             # Calculate distance through current node
             edge_weight = forest_graph.get_distance(current_id, neighbor_id)
             new_dist = dist[current_id] + edge_weight
-            
             # If this path is shorter than what we currently have
             if new_dist < dist[neighbor_id]:
                 dist[neighbor_id] = new_dist
                 prev[neighbor_id] = current_id
                 heapq.heappush(pq, (new_dist, neighbor_id))
-    
     # Reconstruct the path
     path = []
     current = end_tree_id
-    
     # Check if end is reachable
     if prev[current] is not None or current == start_tree_id:
         while current is not None:
